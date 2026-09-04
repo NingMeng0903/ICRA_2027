@@ -1,0 +1,11 @@
+{
+  "csv": "/media/camp/EXT_DRIVE/ICRA_2027/DATA/03_chirp/chirp.csv",
+  "axis": "z",
+  "pair": "vel_ff \u2192 v_ach",
+  "T0_s": 0.028000000000000004,
+  "Tp_s": 0.014000000000000002,
+  "K": 0.9598319064955388,
+  "Gamma_d_ticks": 6,
+  "from_03_chirp": true,
+  "collected_at": "20260903_163352"
+}

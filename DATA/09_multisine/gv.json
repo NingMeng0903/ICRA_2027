@@ -1,0 +1,24 @@
+{
+  "csv": "/media/camp/EXT_DRIVE/ICRA_2027/DATA/09_multisine/multisine.csv",
+  "pair": "vel_ff \u2192 v_ach",
+  "amp_mm_s": 15.0,
+  "T0_s": 0.028000000000000004,
+  "Tp_s": 0.020000000000000004,
+  "K": 0.8823891695178909,
+  "K_lf_0p3_1hz": 0.8823891695178909,
+  "Gamma_d_ticks": 6,
+  "valid_f_lo_hz": 0.26507620941020543,
+  "valid_f_hi_hz": 7.952286282306163,
+  "use_band": "gamma2>=0.6",
+  "scan_0p3_3hz_enough": true,
+  "chatter_15_20hz_enough": false,
+  "time_domain_xcorr_s": 0.045,
+  "time_domain_xcorr_is_T0": false,
+  "time_domain_FOPDT": {
+    "T0_s": 0.035,
+    "Tp_s": 0.012,
+    "K": 0.8012222963037748,
+    "note": "Chirp xcorr locks T0 high.  Use the FRF fit."
+  },
+  "collected_at": "20260903_195045"
+}

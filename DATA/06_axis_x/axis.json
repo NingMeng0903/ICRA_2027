@@ -1,0 +1,11 @@
+{
+  "csv": "/media/camp/EXT_DRIVE/RealUS_playground/rm75_control/apps/logs/peirastic/run_20260903_171646.csv",
+  "axis": "x",
+  "pair": "twist_requested_vx \u2192 twist_achieved_vx",
+  "T0_s": 0.014,
+  "Tp_s": 0.020000000000000004,
+  "K": 0.9646509660722777,
+  "Gamma_d_ticks": 3,
+  "from_03_chirp": false,
+  "collected_at": "20260903_171646"
+}

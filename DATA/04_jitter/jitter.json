@@ -1,0 +1,23 @@
+{
+  "csv": "/media/camp/EXT_DRIVE/ICRA_2027/DATA/04_jitter/jitter.csv",
+  "feedback_age": {
+    "n": 1947,
+    "mean": 0.0038031335387776065,
+    "p05": 0.003311,
+    "p50": 0.003809,
+    "p95": 0.0042957,
+    "max": 0.004915
+  },
+  "dt_actual": {
+    "n": 1947,
+    "mean": 0.005141242937853108,
+    "p05": 0.004998,
+    "p50": 0.005,
+    "p95": 0.005006399999999999,
+    "max": 0.01007
+  },
+  "tick_s": 0.005,
+  "td_is_band": false,
+  "note": "Age is stream freshness.  Plant T0 is 01_system_delay.py.",
+  "collected_at": "20260903_163657"
+}

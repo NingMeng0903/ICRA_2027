@@ -1,0 +1,45 @@
+{
+  "csv": "/media/camp/EXT_DRIVE/ICRA_2027/DATA/05_track/track.csv",
+  "pair": "e = vel_ff \u2212 v_ach",
+  "n": 7857,
+  "rmse_m_s": 0.008380501003907363,
+  "p95_abs_m_s": 0.0190824,
+  "max_abs_m_s": 0.029831,
+  "bands": {
+    "0p3_1": {
+      "n": 2395,
+      "rmse_m_s": 0.0023756018333390117,
+      "p95_abs_m_s": 0.0049051999999999985,
+      "max_abs_m_s": 0.006750999999999999,
+      "f_lo_hz": 0.3,
+      "f_hi_hz": 1.0
+    },
+    "1_3": {
+      "n": 2184,
+      "rmse_m_s": 0.005578547652988783,
+      "p95_abs_m_s": 0.009640349999999997,
+      "max_abs_m_s": 0.01304,
+      "f_lo_hz": 1.0,
+      "f_hi_hz": 3.0
+    },
+    "0p3_3": {
+      "n": 4579,
+      "rmse_m_s": 0.004218395013387366,
+      "p95_abs_m_s": 0.0085301,
+      "max_abs_m_s": 0.01304,
+      "f_lo_hz": 0.3,
+      "f_hi_hz": 3.0
+    },
+    "3_8": {
+      "n": 1946,
+      "rmse_m_s": 0.013043286567070017,
+      "p95_abs_m_s": 0.021386500000000003,
+      "max_abs_m_s": 0.027392,
+      "f_lo_hz": 3.0,
+      "f_hi_hz": 8.0
+    }
+  },
+  "lee_tau_available": false,
+  "note": "No joint-torque interface \u2014 cannot apply BEFM.  This is the tracking error only.",
+  "collected_at": "20260903_164319"
+}

@@ -1,0 +1,17 @@
+{
+  "csv": "/media/camp/EXT_DRIVE/ICRA_2027/DATA/03_chirp/chirp.csv",
+  "paper": "Samuel 2024 eq. (10) first term only",
+  "pair": "Vi=vel_ff, Vm=v_ach",
+  "Gamma_d_ticks": 6,
+  "T0_s": 0.028,
+  "Tn": "K / (Tp s + 1) after \u0393d; \u0393d never inverted",
+  "Tp_s": 0.014,
+  "K": 0.96,
+  "rmse_vm_minus_pred_m_s": 0.0016345297599284657,
+  "q_hz_display_only": 0.0,
+  "q_is_plant_parameter": false,
+  "n1_n2_identified": false,
+  "cdyob_applied": false,
+  "note": "Small RMSE in air \u21d2 Tn explains the inner loop.  That is the V/Vr|Q=1=Tn check.  N1/N2 stay un-identified.",
+  "collected_at": "20260903_195831"
+}
