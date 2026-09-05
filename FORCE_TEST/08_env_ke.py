@@ -11,7 +11,11 @@ into the stiffness.
 
 The paper number is not a single secant.  Analysis returns the local
 Ke(F) envelope on loading and unloading inside the work band
-F ∈ [f_lo, f_hi] (default 2–6 N), and ᾱKe = max |Ke_local|.
+F ∈ [f_lo, f_hi] (default 2–5 N, aligned with --target-n), and
+ᾱKe = max |Ke_local|.  work_band_reached only if the raw loading
+Fz spans [f_lo, f_hi] to within ε_F and in-band local Ke exists.
+A single sample inside the band is not coverage.  --f-hi must not
+exceed --target-n.
 
 After the press: controlled unload at the same speed, then retract
 off the pad and MOVEJ mid-stroke.  DATA/08_ke/ keeps only the latest
@@ -34,7 +38,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from goto_mid import add_movej_args, go_mid, go_mid_from_args
 from id_common import load_aligned, stash_window_a
-from id_math import dump_jsonable, local_stiffness, stiffness_envelope
+from id_math import dump_jsonable, local_stiffness, stiffness_envelope, work_band_spanned
 from io_csv import col, write_json
 from paper_fig import ACH, MINUS, mpl, panel_tag, save
 from paths import DATA, add_playground, dry_exit, kind_dirs, stamp, write_readme
@@ -64,6 +68,8 @@ ENV_FIELDS = SITE_FIELDS + (
     "f_lo_n",
     "f_hi_n",
     "work_band_reached",
+    "f_valid_min",
+    "f_valid_max",
     "n_local",
 )
 TAU_L_S = 0.040
@@ -112,13 +118,29 @@ def _secant(x: np.ndarray, f: np.ndarray) -> tuple[float, float, float, float]:
     return fz0, fz1, dxp, ke
 
 
-def _limb_envelope(x: np.ndarray, f: np.ndarray, mask: np.ndarray, f_lo: float, f_hi: float) -> dict:
+def _limb_envelope(
+    x: np.ndarray,
+    f: np.ndarray,
+    mask: np.ndarray,
+    f_lo: float,
+    f_hi: float,
+    *,
+    eps_f: float = 0.15,
+) -> dict:
     if int(np.count_nonzero(mask)) < 8:
-        empty = stiffness_envelope(np.array([]), np.array([]), f_lo, f_hi)
+        empty = stiffness_envelope(np.array([]), np.array([]), f_lo, f_hi, eps_f=eps_f)
         empty["secant"] = float("nan")
+        empty["f_limb_min"] = float("nan")
+        empty["f_limb_max"] = float("nan")
         return empty
     fm, ke = local_stiffness(x[mask], f[mask])
-    env = stiffness_envelope(fm, ke, f_lo, f_hi)
+    env = stiffness_envelope(fm, ke, f_lo, f_hi, eps_f=eps_f)
+    span = work_band_spanned(f[mask], f_lo, f_hi, eps_f=eps_f)
+    env["f_limb_min"] = span["f_min"]
+    env["f_limb_max"] = span["f_max"]
+    # Coverage is the force that was actually applied, not a window-mean
+    # that sits inside the peak.  Still require in-band local Ke samples.
+    env["work_band_reached"] = bool(span["work_band_reached"] and int(env.get("n") or 0) >= 4)
     _fz0, _fz1, _dx, sec = _secant(x[mask], f[mask])
     env["secant"] = sec
     env["f_center"] = fm
@@ -137,7 +159,8 @@ def analyze(
     record_site: bool = True,
     window_a_csv: str = "",
     f_lo: float = 2.0,
-    f_hi: float = 6.0,
+    f_hi: float = 5.0,
+    eps_f: float = 0.15,
 ) -> dict:
     rows, align = load_aligned(Path(csv_path), window_a_csv or None)
     t = col(rows, "t_wall_s", "t_mono_s")
@@ -162,8 +185,8 @@ def analyze(
         float("nan"),
         float("nan"),
     )
-    load_env = _limb_envelope(pose_dx, fz, press, f_lo, f_hi)
-    unload_env = _limb_envelope(pose_dx, fz, unload, f_lo, f_hi)
+    load_env = _limb_envelope(pose_dx, fz, press, f_lo, f_hi, eps_f=eps_f)
+    unload_env = _limb_envelope(pose_dx, fz, unload, f_lo, f_hi, eps_f=eps_f)
     bars = [
         v
         for v in (load_env.get("ke_bar"), unload_env.get("ke_bar"))
@@ -176,7 +199,7 @@ def analyze(
         if math.isfinite(float(v or float("nan")))
     ]
     ke_min = float(min(mins)) if mins else float("nan")
-    band_ok = bool(load_env.get("work_band_reached") or unload_env.get("work_band_reached"))
+    band_ok = bool(load_env.get("work_band_reached"))
     bound_n = (
         2.0 * float(ke_bar) * V_E_EXAMPLE_M_S * TAU_L_S
         if math.isfinite(ke_bar)
@@ -190,10 +213,41 @@ def analyze(
         "ke_secant_n_m": ke,
         "ke_bar_n_m": ke_bar,
         "ke_min_n_m": ke_min,
-        "ke_load": {k: load_env[k] for k in ("n", "ke_min", "ke_max", "ke_bar", "ke_median", "work_band_reached", "secant")},
-        "ke_unload": {k: unload_env[k] for k in ("n", "ke_min", "ke_max", "ke_bar", "ke_median", "work_band_reached", "secant")},
+        "ke_load": {
+            k: load_env.get(k)
+            for k in (
+                "n",
+                "ke_min",
+                "ke_max",
+                "ke_bar",
+                "ke_median",
+                "work_band_reached",
+                "secant",
+                "f_valid_min",
+                "f_valid_max",
+                "f_limb_min",
+                "f_limb_max",
+            )
+        },
+        "ke_unload": {
+            k: unload_env.get(k)
+            for k in (
+                "n",
+                "ke_min",
+                "ke_max",
+                "ke_bar",
+                "ke_median",
+                "work_band_reached",
+                "secant",
+                "f_valid_min",
+                "f_valid_max",
+                "f_limb_min",
+                "f_limb_max",
+            )
+        },
         "f_lo_n": f_lo,
         "f_hi_n": f_hi,
+        "eps_f_n": eps_f,
         "work_band_reached": band_ok,
         "fz0_n": fz0,
         "fz1_n": fz1,
@@ -217,10 +271,16 @@ def analyze(
     site_txt = site if site else "（未标部位，用 --site）"
     hard = math.isfinite(ke_bar) and ke_bar >= 500.0
     band_note = (
-        f"工作带 [{f_lo:.1f},{f_hi:.1f}] N 内 ᾱKe = {fmt_finite(ke_bar, '.1f')} N/m，"
+        f"加载段覆盖 [{fmt_finite(load_env.get('f_valid_min'), '.2f')},"
+        f"{fmt_finite(load_env.get('f_valid_max'), '.2f')}] N，"
+        f"声称工作带 [{f_lo:.1f},{f_hi:.1f}] N：ᾱKe = {fmt_finite(ke_bar, '.1f')} N/m，"
         f"下缘 {fmt_finite(ke_min, '.1f')} N/m。"
         if band_ok
-        else f"没有走到 [{f_lo:.1f},{f_hi:.1f}] N。后面的 ΔF≤Ke Δx_tail 不能用这一拍的平均 secant 充数。"
+        else (
+            f"加载段只覆盖 [{fmt_finite(load_env.get('f_valid_min'), '.2f')},"
+            f"{fmt_finite(load_env.get('f_valid_max'), '.2f')}] N，"
+            f"没有跨满 [{f_lo:.1f},{f_hi:.1f}] N。这一拍不能写成工作带 ᾱKe。"
+        )
     )
     write_readme(
         visu,
@@ -264,6 +324,12 @@ def analyze(
         "f_lo_n": f"{f_lo:.2f}",
         "f_hi_n": f"{f_hi:.2f}",
         "work_band_reached": "1" if band_ok else "0",
+        "f_valid_min": f"{float(load_env.get('f_valid_min') or float('nan')):.3f}"
+        if math.isfinite(float(load_env.get("f_valid_min") or float("nan")))
+        else "",
+        "f_valid_max": f"{float(load_env.get('f_valid_max') or float('nan')):.3f}"
+        if math.isfinite(float(load_env.get("f_valid_max") or float("nan")))
+        else "",
         "n_local": str(int(load_env.get("n") or 0) + int(unload_env.get("n") or 0)),
     }
     if record_site:
@@ -322,7 +388,8 @@ def main() -> int:
     p.add_argument("--press-s", type=float, default=5.0)
     p.add_argument("--target-n", type=float, default=5.0, help="stop press at this F if reached first")
     p.add_argument("--f-lo", type=float, default=2.0)
-    p.add_argument("--f-hi", type=float, default=6.0)
+    p.add_argument("--f-hi", type=float, default=5.0, help="must match --target-n; coverage requires the press to span this band")
+    p.add_argument("--eps-f", type=float, default=0.15)
     p.add_argument("--unload-s", type=float, default=4.0)
     p.add_argument("--retract-mm-s", type=float, default=8.0)
     p.add_argument("--retract-s", type=float, default=2.5)
@@ -346,10 +413,19 @@ def main() -> int:
             f"until F≈{args.target_n:.1f} N or {args.press_s:.1f}s, same-speed unload, "
             f"retract −Z, MOVEJ mid  site={site or '(tell me after)'}  "
             f"band [{args.f_lo:.1f},{args.f_hi:.1f}] N  abort F≥{args.abort_n:.1f} N  "
+            f"repeat each site at 1.5, 3, 6 mm/s  "
             f"force loop OFF  Δx=Window A pose  log→{ENVELOPE_CSV.name}",
             flush=True,
         )
         print("[PLAN] Window A must be started with --log-csv; pass --window-a-csv", flush=True)
+    if args.f_hi > args.target_n + args.eps_f and not args.csv:
+        print(
+            f"[ERR] work band [{args.f_lo:.1f},{args.f_hi:.1f}] N cannot be covered "
+            f"when --target-n={args.target_n:.1f} N (need target ≥ f-hi − eps-f). "
+            "Either lower --f-hi to 5 or raise --target-n (and abort).",
+            flush=True,
+        )
+        return 2
     if dry_exit(args):
         return 0
     if args.csv:
@@ -363,6 +439,7 @@ def main() -> int:
                 window_a_csv=args.window_a_csv,
                 f_lo=args.f_lo,
                 f_hi=args.f_hi,
+                eps_f=args.eps_f,
             )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)
@@ -464,6 +541,7 @@ def main() -> int:
                 window_a_csv=args.window_a_csv,
                 f_lo=args.f_lo,
                 f_hi=args.f_hi,
+                eps_f=args.eps_f,
             )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)

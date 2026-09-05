@@ -20,6 +20,7 @@ from id_math import (
     local_stiffness,
     port_power,
     power_invariance_rel_err,
+    predicted_twist,
     prefix_covers,
     prefix_debt,
     prefix_work,
@@ -27,9 +28,10 @@ from id_math import (
     so3_log_vee,
     stiffness_envelope,
     twist_at_offset,
+    work_band_spanned,
     wrench_at_offset,
 )
-from window_a import pose_body_twist, rot_xyz
+from window_a import pose_body_twist, relative_axis_angle, rot_xyz
 
 
 def test_disp_chirp_stays_inside_ax() -> None:
@@ -63,11 +65,20 @@ def test_local_ke_envelope() -> None:
     x = np.linspace(0.0, 0.008, 400)
     f = 1.0 + 800.0 * x
     fm, ke = local_stiffness(x, f, win=31, min_dx=1e-6)
-    env = stiffness_envelope(fm, ke, 2.0, 6.0)
+    env = stiffness_envelope(fm, ke, 2.0, 5.0)
     assert env["work_band_reached"]
     assert abs(env["ke_bar"] - 800.0) < 20.0
     assert abs(env["ke_min"] - 800.0) < 20.0
-    print("[OK] local Ke envelope", flush=True)
+    mid = (fm >= 2.0) & (fm <= 3.2) & np.isfinite(ke)
+    partial = stiffness_envelope(fm[mid], ke[mid], 2.0, 5.0)
+    assert not partial["work_band_reached"]
+    # Old default: band [2, 6] N with a 5 N target never spans 6 N.
+    to5 = fm <= 5.0
+    assert not stiffness_envelope(fm[to5], ke[to5], 2.0, 6.0)["work_band_reached"]
+    assert work_band_spanned(np.array([0.5, 2.0, 3.5, 5.0]), 2.0, 5.0)["work_band_reached"]
+    assert not work_band_spanned(np.array([0.5, 2.0, 3.5]), 2.0, 5.0)["work_band_reached"]
+    assert not work_band_spanned(np.array([2.6, 3.5, 5.0]), 2.0, 5.0)["work_band_reached"]
+    print("[OK] local Ke envelope + full-band coverage", flush=True)
 
 
 def test_so3_omega_and_pose_twist() -> None:
@@ -114,6 +125,28 @@ def test_prefix_forall_k() -> None:
     print("[OK] prefix ∀k coverage", flush=True)
 
 
+def test_power_bound_from_gu_not_ach() -> None:
+    dt = 0.005
+    n = 200
+    cmd = np.zeros((n, 6))
+    cmd[:, 2] = 0.01
+    g = {
+        "zz": {"T0_s": 0.0, "Tp_s": 0.01, "K": 1.0},
+        "zth": {"T0_s": 0.0, "Tp_s": 0.01, "K": 0.0},
+        "thz": {"T0_s": 0.0, "Tp_s": 0.01, "K": 0.0},
+        "thth": {"T0_s": 0.0, "Tp_s": 0.01, "K": 1.0},
+    }
+    hat = predicted_twist(cmd, dt, g, theta_axis=4)
+    wrench = np.zeros((n, 6))
+    wrench[:, 2] = 4.0
+    p_hat = port_power(wrench, hat)
+    ach = cmd.copy()
+    ach[:, 2] = 0.02
+    p_ach = port_power(wrench, ach)
+    assert float(np.nanmean(p_hat)) < float(np.nanmean(p_ach)) - 0.01
+    print("[OK] energy bound uses Ĝu, not P_ach", flush=True)
+
+
 def test_fopdt_and_tube() -> None:
     dt = 0.005
     t = np.arange(0.0, 2.0, dt)
@@ -134,6 +167,11 @@ def test_rot_xyz_roundtrip() -> None:
     assert R.shape == (2, 3, 3)
     assert abs(float(np.linalg.det(R[1])) - 1.0) < 1e-9
     print("[OK] rot_xyz", flush=True)
+    pose = np.zeros((12, 6))
+    pose[:, 4] = np.linspace(0.0, 0.2, 12)
+    th = relative_axis_angle(pose, 1)
+    assert abs(float(th[-1]) - 0.2) < 1e-8
+    print("[OK] relative SO(3) tilt angle", flush=True)
 
 
 def test_matched_state_gate() -> None:
@@ -156,6 +194,7 @@ if __name__ == "__main__":
     test_so3_omega_and_pose_twist()
     test_power_invariance()
     test_prefix_forall_k()
+    test_power_bound_from_gu_not_ach()
     test_fopdt_and_tube()
     test_rot_xyz_roundtrip()
     test_matched_state_gate()

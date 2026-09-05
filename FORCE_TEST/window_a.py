@@ -257,6 +257,34 @@ def tool_z_displacement(pose: np.ndarray) -> np.ndarray:
     return out
 
 
+def axis_unit(axis: int) -> np.ndarray:
+    e = np.zeros(3, dtype=float)
+    e[int(axis) % 3] = 1.0
+    return e
+
+
+def relative_axis_angle(pose: np.ndarray, axis: int, *, i_ref: int | None = None) -> np.ndarray:
+    """θ = Log(R_ref^T R)^∨ · e_axis.  Not a global Euler angle."""
+
+    pose = np.asarray(pose, dtype=float)
+    n = int(pose.shape[0])
+    out = np.full(n, np.nan, dtype=float)
+    if n == 0:
+        return out
+    R = rot_xyz(pose[:, 3], pose[:, 4], pose[:, 5])
+    ok = np.isfinite(R).all(axis=(1, 2))
+    if not np.any(ok):
+        return out
+    i0 = int(i_ref) if i_ref is not None else int(np.flatnonzero(ok)[0])
+    if not ok[i0]:
+        return out
+    e = axis_unit(axis)
+    Rref_t = R[i0].T
+    for i in np.flatnonzero(ok):
+        out[int(i)] = float(np.dot(so3_log_vee(Rref_t @ R[int(i)]), e))
+    return out
+
+
 def pose_body_twist(pose: np.ndarray, dt: np.ndarray) -> np.ndarray:
     """Tool-frame twist from pose: v = R^T ṗ, ω = (Log(R_k^T R_{k+1}))^∨ / Δt.
 

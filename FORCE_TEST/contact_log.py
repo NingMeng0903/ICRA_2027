@@ -309,6 +309,53 @@ class ContactLogger:
         print("[ERR] no contact", flush=True)
         return False
 
+    def hold_quiet(
+        self,
+        min_s: float,
+        max_s: float,
+        phase: str,
+        *,
+        eps_dfdt: float = 0.80,
+        quiet_s: float = 0.40,
+    ) -> bool:
+        """Hold u=0 until |Ḟ| stays below eps for quiet_s, after at least min_s.
+
+        Preload / settle only.  Identification phases stay open-loop twist.
+        """
+
+        hist: list[tuple[float, float]] = []
+        t0 = time.monotonic()
+        quiet_from: float | None = None
+        while time.monotonic() - t0 < float(max_s):
+            if not self.tick(0.0, phase, check_abort=False):
+                return False
+            now = time.monotonic()
+            if math.isfinite(self.last_fz):
+                hist.append((now, float(self.last_fz)))
+                hist = [(ts, ff) for ts, ff in hist if now - ts <= 0.25]
+                if len(hist) >= 4:
+                    span = hist[-1][0] - hist[0][0]
+                    if span > 0.06:
+                        dfdt = abs((hist[-1][1] - hist[0][1]) / span)
+                        if dfdt < float(eps_dfdt):
+                            if quiet_from is None:
+                                quiet_from = now
+                            if now - quiet_from >= float(quiet_s) and now - t0 >= float(min_s):
+                                print(
+                                    f"[QUIET] |dF/dt|={dfdt:.2f} N/s for {quiet_s:.2f}s  "
+                                    f"F={self.last_fz:.2f} N",
+                                    flush=True,
+                                )
+                                return True
+                        else:
+                            quiet_from = None
+            time.sleep(self.dt)
+        print(
+            f"[QUIET] timed out after {max_s:.1f}s  Fz={self.last_fz:.2f} N — continuing",
+            flush=True,
+        )
+        return True
+
     def seek_force(
         self,
         target_n: float,

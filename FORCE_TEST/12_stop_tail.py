@@ -9,6 +9,10 @@ Why: (F, v) is not a sufficient state.  A slow-then-fast sequential
 Live matching uses MotionBus v_tcp_z, integrated x_proxy, and Fz.
 Analysis re-checks the match on Window A pose.  w̄ is max|ΔF|+δ on
 matched train pairs, not a p90 of leftover stop edges.
+
+Force feedback is used only to reach the preload.  Every hist/stop
+phase is open-loop commanded twist.  Soft-pad settle also waits for
+|Ḟ| below a threshold so viscoelastic relaxation is not the hidden state.
 """
 
 from __future__ import annotations
@@ -239,6 +243,7 @@ def analyze(
 - {verdict}
 - 训练包络 \(\\bar w\) = {fmt_finite(w_bar, '.2f')} N（max|ΔF|+{w_slack:.2f}，不是 p90）。覆盖率留给 15。
 - 匹配门：|ΔF|<{eps_f:.2f} N，|Δx|<{eps_x_mm:.2f} mm，|Δv|<{eps_v_mm_s:.1f} mm/s，|Δu|<{eps_u_mm_s:.1f} mm/s。
+- 力反馈只用于 preload 初始化；hist / stop 全程开环 twist。软垫 settle 还要求 |Ḟ| 持续低于阈值。
 
 ## 图
 
@@ -286,10 +291,24 @@ def _plot_12(rows, pairs: list[dict], visu: Path) -> None:
     plt.close(fig)
 
 
-def _settle(srv: ContactLogger, f_pre: float, settle_s: float, band: float) -> bool:
+def _settle(
+    srv: ContactLogger,
+    f_pre: float,
+    settle_s: float,
+    band: float,
+    *,
+    eps_dfdt: float,
+    quiet_s: float,
+) -> bool:
     if not srv.seek_force(f_pre, vel_m_s=0.004, band_n=band, phase="settle"):
         return False
-    if not srv.hold(0.0, settle_s, "settle", check_abort=False):
+    if not srv.hold_quiet(
+        settle_s,
+        settle_s + 2.5,
+        "settle",
+        eps_dfdt=eps_dfdt,
+        quiet_s=quiet_s,
+    ):
         return False
     srv.reset_proxy()
     return True
@@ -306,7 +325,9 @@ def main() -> int:
     p.add_argument("--hist-ms", type=float, default=80.0)
     p.add_argument("--approach-s", type=float, default=1.60)
     p.add_argument("--stop-s", type=float, default=0.35)
-    p.add_argument("--pair-settle-s", type=float, default=1.20, help="viscoelastic wait between A and B")
+    p.add_argument("--pair-settle-s", type=float, default=1.20, help="minimum wait between A and B")
+    p.add_argument("--eps-dfdt", type=float, default=0.80, help="|dF/dt| N/s to call the pad settled")
+    p.add_argument("--quiet-s", type=float, default=0.40)
     p.add_argument("--eps-f", type=float, default=0.25)
     p.add_argument("--eps-x-mm", type=float, default=0.35)
     p.add_argument("--eps-v-mm-s", type=float, default=4.0)
@@ -316,8 +337,10 @@ def main() -> int:
     print(
         f"[PLAN] MOVEJ mid, seek, then {args.pairs} matched-state pairs: "
         f"steady {args.u_match_mm_s:.0f} mm/s vs burst {args.u_burst_mm_s:.0f}→"
-        f"{args.u_match_mm_s:.0f} mm/s, same backup, settle {args.pair_settle_s:.1f}s  "
-        f"force loop OFF  abort F≥{args.abort_n:.1f} N",
+        f"{args.u_match_mm_s:.0f} mm/s, same backup, settle ≥{args.pair_settle_s:.1f}s "
+        f"and |dF/dt|<{args.eps_dfdt:.2f} N/s  "
+        f"force used only for preload  hist/stop are open-loop twist  "
+        f"abort F≥{args.abort_n:.1f} N",
         flush=True,
     )
     if dry_exit(args):
@@ -365,7 +388,14 @@ def main() -> int:
             return 2
         for i in range(int(args.pairs)):
             tag = f"{i:02d}"
-            if not _settle(srv, args.f_preload, args.pair_settle_s, 0.18):
+            if not _settle(
+                srv,
+                args.f_preload,
+                args.pair_settle_s,
+                0.18,
+                eps_dfdt=args.eps_dfdt,
+                quiet_s=args.quiet_s,
+            ):
                 return 0 if srv.aborted else 2
             hit = srv.play_until(
                 lambda _s: axis_twist(2, u_match),
@@ -386,7 +416,14 @@ def main() -> int:
             )
             if not srv.hold(0.0, args.stop_s, f"stop_A{tag}", check_abort=False):
                 return 0 if srv.aborted else 130
-            if not _settle(srv, args.f_preload, args.pair_settle_s, 0.18):
+            if not _settle(
+                srv,
+                args.f_preload,
+                args.pair_settle_s,
+                0.18,
+                eps_dfdt=args.eps_dfdt,
+                quiet_s=args.quiet_s,
+            ):
                 return 0 if srv.aborted else 2
 
             def _twist_b(s, _u_match=u_match, _u_burst=u_burst, _fsw=f_switch):

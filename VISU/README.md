@@ -99,7 +99,7 @@ Source: `DATA/08_ke/press.csv` merged with `window_a.csv`. Δx is TCP pose along
 
 ### `08_ke/ke_envelope`
 
-Local \(K_e(F)\) on loading. The shade is the work band [2, 6] N. The paper number is \(\overline K_e\), not the secant.
+Local \(K_e(F)\) on loading. The shade is the work band [2, 5] N (aligned with the 5 N target). The paper number is \(\overline K_e\), not the secant. `work_band_reached` requires the raw loading force to span that band.
 
 ## 11 — 2×2 execution contract
 
@@ -107,11 +107,11 @@ Source: `DATA/11_exec_2dof/exec.csv` + `window_a.csv`. Joint lines do not overla
 
 ### `11_exec_2dof/exec_bode`
 
-Four panels: \(G_{zz},G_{z\theta},G_{\theta z},G_{\theta\theta}\).
+Four panels: \(G_{zz},G_{z\theta},G_{\theta z},G_{\theta\theta}\). Contact solid, air dashed. Air and contact are **not** one plant.
 
 ### `11_exec_2dof/exec_tube`
 
-Time-domain residual of \(\hat G u\) versus achieved \((v_z,\omega_\theta)\). The tube is max\(|e|\)+slack.
+Time-domain residual of \(\hat G_{\rm contact}u\) versus achieved \((v_z,\omega_\theta)\). The tube is max\(|e|\)+slack. QP uses \(W_{\rm contact}\).
 
 ## 12 — matched-state stop tail
 
@@ -124,11 +124,11 @@ Source: `DATA/12_stop_tail/tail.csv` + `window_a.csv`. Only pairs that match \((
 
 ## 13 — scan-induced force
 
-Source: `DATA/13_contact_hs/hs.csv` + `window_a.csv`. Scans carry independent \(\delta v_z,\delta\omega_\theta\).
+Source: `DATA/13_contact_hs/hs.csv` + `window_a.csv`. One known \(\alpha\) per take. Scans carry independent \(\delta v_z,\delta\omega_\theta\).
 
 ### `13_contact_hs/hs_scan`
 
-Fz against path travel. One trace is the flat scan, one is the known wedge. If they coincide, Hs is not identified.
+Fz against path travel on **this** \(\alpha\), two \(\rho\). Do not overlay a mid-take wedge swap.
 
 ## 14 — port power
 
@@ -136,11 +136,11 @@ Source: `DATA/14_port_energy/energy.csv` + `window_a.csv`.
 
 ### `14_port_energy/port_power`
 
-Command, achieved-twist, SO(3) pose-twist, and the 11-contract lower bound.
+\(\hat P=W^\top\hat G_{\rm contact}u\), pose power, and \(P_{\rm lower}=\hat P-\|F\|\bar e_v-\|\tau\|\bar e_\omega\). Not \(P_{\rm ach}-\|F\|\bar e_G\).
 
 ### `14_port_energy/prefix_debt`
 
-\(D_{\rm true}(k)\) against \(D_{\rm bound}(k)\). Coverage is ∀k, not a comparison of two maxima.
+\(D_{\rm pose}(k)\) against \(D_{\rm lower}(k)\). Coverage is ∀k, not a comparison of two maxima. TCP↔contact equality is an adjoint self-check, not a lever calibration.
 
 ## 15 — hold-out
 

@@ -19,20 +19,29 @@ python FORCE_TEST/01_system_delay.py --dry-run
 | `05_tracking_error.py` | \|vel_ff − v_ach\| (Lee) | BEFM apply (no τ) |
 | `06_axis_gv.py` | Gv on X/Y/Z (Ma macro/mini) | force law |
 | `07_contact_gv.py` | air vs contact Gv under **bounded Ax ≈ 0.4 mm**; residual set Ev | force tracking, 5 mm/s @ 0.2 Hz chirp |
-| `08_env_ke.py` | Ke envelope in F∈[2,6] N, load/unload; `ke_envelope.csv` | single-secant 527 N/m as the paper number |
+| `08_env_ke.py` | Ke envelope in F∈[2,5] N (aligned with `--target-n=5`); `ke_envelope.csv` | single-secant 527 N/m; claiming [2,6] N at a 5 N press |
 | `09_multisine_gv.py` | paper §II.A multisine FRF | position-loop experiment |
 | `10_tn_observe.py` | eq.(10) first term, observe only | Q/N1/N2 ID, CDYOB apply |
-| `11_exec_2dof.py` | full 2×2 G + residual tube W | “cross small yes/no”, force certificate |
+| `11_exec_2dof.py` | **separate** \(G_{\rm air}\) and \(G_{\rm contact}\) 2×2 + \(W_{\rm contact}\) | mixed air+contact plant; auto-diagonal on \|K\|=0.08 |
 | `12_stop_tail.py` | **matched-state** same (F,x,v,u), different 50–100 ms queue | sequential slow/fast that happens to share F |
-| `13_contact_hs.py` | Hz, Hθ, Hs from independent δvz, δωθ, ρ; α table | rank-1 scan, 90° bounce law |
-| `14_port_energy.py` | TCP↔contact invariance, SO(3) ω, 11-bound, prefix ∀k | same-take ‖v_ach−v_cmd‖ as passivity |
+| `13_contact_hs.py` | one \(\alpha\) per take; \(H(\alpha)=[H_z,H_\theta,H_s]\) | flat+wedge mixed into one H |
+| `14_port_energy.py` | \(P_{\rm lower}=W^\top\hat G_{\rm contact}u-\|F\|\bar e\); prefix ∀k | \(P_{\rm ach}-\|F\|\bar e_G\); lever “calibration” via invariance |
 | `15_holdout.py` | independent coverage of 08/11–14 bounds | fitting a new G/Ke/H/w̄ |
 
 `--csv` analyzes an existing file. Each script keeps **only the latest** run: `DATA/01_delay/`, `VISU/01_delay/`, … A new collect (or `--csv` analyze) deletes that script’s previous folder. `06` keeps latest per axis in `DATA/06_axis_x|y|z/` and `VISU/06_axis/{x,y,z}/`. `--dry-run` prints the plan only: no drive, no DATA, no VISU, even with `--csv`. Timestamp of the take is in the JSON `collected_at` field.
 
 Contact ID writes a 6-D command log plus a copy of Window A as `DATA/<kind>/window_a.csv`. Analyze refuses to invent pose/wrench from the command file. Window A must log `tx,ty,tz` (playground patch); without torque, 13/14 degrade and say so.
 
-Collect order: **07 → 08 → 11 → 12 → 端口坐标/符号预校验 → 13 → 14 → 15**. 10 is already done. 08 can be collected now (pose Δx is correct); expand the matrix across pads / sites / speeds. Do **not** collect 07/11–14 on the old defaults.
+Collect order: **07 → 08 → 11 → 12 → 13 → 14**. Do **not** collect 15 now. Do **not** collect 07–14 as one batch.
+
+| exp | collect now? |
+|---|---|
+| 07 | **GO** — disp-limited chirp + \(\mathcal E_v\) vs air \(G_v\) |
+| 08 | **GO** after this band fix — default [2, 5] N = `--target-n`; each hard/soft site at \(v_z=1.5,3,6\) mm/s |
+| 11 | **wait** — \(G_{\rm air}\) and \(G_{\rm contact}\) are now separate; collect after 07/08 |
+| 12 | **GO** on hard pad first — matched-state is the core motivation experiment |
+| 13 | **wait** — one known \(\alpha\) per take (`--alpha-deg`, 0 = flat) |
+| 14 | **wait** — needs 11 \(G_{\rm contact}\) first; bound is \(W^\top\hat G u\), not \(P_{\rm ach}\) |
 
 Importance for the paper: **12 > 11 > 15 > 08 > 13 > 14 > 07**. 14 enters the main text only if the 11-bound covers every prefix on real data.
 

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 """Two feedback-DoF execution contract.  Force loop OFF.
 
-What: identify the full 2×2 plant
+What: identify *separate* 2×2 plants G_air and G_contact
       [vz, ωθ_ach] = G(s) [uz, ωθ] + w
-      with frequency-split joint multisine (no shared lines), then a
-      residual tube W on an in-take validation split.
-Why: QP may only request (uz, ωθ) the servo can actually produce.
-     Cross-term “small yes/no” is not the contract.
+      with frequency-split joint multisine (no shared lines).
+Why: 07 asks whether G_air ≈ G_contact.  Mixing the two phases into
+     one FOPDT pretends the answer is yes.  The QP contract is
+     y ∈ Ĝ_contact u ⊕ W_contact.  Air is baseline only.
+
+Always store the full 2×2.  Cross gains have different units; do not
+threshold |K| = 0.08 to drop to diagonal.
 
 Contact z uses a displacement-limited chirp so the pad stays preloaded.
-Hard force certificates stay off this file.
 """
 
 from __future__ import annotations
@@ -31,7 +33,6 @@ from id_math import (
     TH_FREQS_HZ,
     Z_FREQS_HZ,
     dump_jsonable,
-    finite_channel,
     freq_split_disp_multisine,
     predict_2x2,
     residual_tube,
@@ -116,56 +117,66 @@ def analyze(
     uz = cmd[:, 2]
     wth_u = cmd[:, th]
 
-    # Diagonal + both cross terms from single-axis phases (air / contact).
-    jobs = {
-        "zz": [("air_z", "contact_z"), uz, vz_ach],
-        "thth": [("air_th", "contact_th"), wth_u, wth_ach],
-        "zth": [("air_th", "contact_th"), wth_u, vz_ach],
-        "thz": [("air_z", "contact_z"), uz, wth_ach],
-    }
-    G: dict[str, dict] = {}
-    drawn = []
-    for name, (phases, u, y) in jobs.items():
-        pair = _pair(u, y, t, dt_col, phase_mask(rows, *phases))
-        if pair is None:
-            G[name] = {"name": name, "T0_s": float("nan"), "Tp_s": float("nan"), "K": float("nan"), "n": 0}
-            continue
-        ch = _fit_channel(name, *pair)
-        G[name] = ch
-        drawn.append(ch)
+    def _fit_regime(prefix: str) -> dict[str, dict]:
+        jobs = {
+            "zz": ([f"{prefix}_z"], uz, vz_ach),
+            "thth": ([f"{prefix}_th"], wth_u, wth_ach),
+            "zth": ([f"{prefix}_th"], wth_u, vz_ach),
+            "thz": ([f"{prefix}_z"], uz, wth_ach),
+        }
+        out: dict[str, dict] = {}
+        for name, (phases, u, y) in jobs.items():
+            pair = _pair(u, y, t, dt_col, phase_mask(rows, *phases))
+            if pair is None:
+                out[name] = {
+                    "name": f"{prefix}_{name}",
+                    "T0_s": float("nan"),
+                    "Tp_s": float("nan"),
+                    "K": float("nan"),
+                    "n": 0,
+                }
+                continue
+            ch = _fit_channel(f"{prefix}_{name}", *pair)
+            out[name] = ch
+        return out
 
-    # Time-domain 2×2 residual on joint ID vs val (air_joint / contact_joint / val_joint).
-    id_mask = phase_mask(rows, "air_joint", "contact_joint")
-    val_mask = phase_mask(rows, "val_joint")
-    if not np.any(val_mask):
-        # Last 30% of joint as val if the collect did not add a dedicated split.
-        j = np.flatnonzero(id_mask)
-        if j.size >= 80:
-            cut = j[0] + _split_idx(j.size)
-            val_mask = np.zeros(id_mask.size, dtype=bool)
-            val_mask[cut : j[-1] + 1] = True
-            id_mask[cut:] = False
+    G_air = _fit_regime("air")
+    G_contact = _fit_regime("contact")
 
-    def _tube_on(mask: np.ndarray) -> tuple[dict, dict, dict]:
+    def _slim(G: dict[str, dict]) -> dict:
+        return {name: {k: G[name].get(k) for k in ("T0_s", "Tp_s", "K", "n", "peak_accel")} for name in G_NAMES}
+
+    def _tube_on(mask: np.ndarray, G: dict[str, dict]) -> tuple[dict, dict, dict]:
         m = mask & np.isfinite(t) & np.isfinite(uz) & np.isfinite(vz_ach)
         if int(np.count_nonzero(m)) < 32:
             empty = residual_tube(np.array([]))
             return empty, empty, {"n": 0, "dt_s": float("nan")}
         dt = median_dt(t[m], dt_col[m])
-        g_fit = {k: G[k] for k in G_NAMES}
-        vz_hat, th_hat = predict_2x2(uz[m], wth_u[m], dt, g_fit)
+        vz_hat, th_hat = predict_2x2(uz[m], wth_u[m], dt, G)
         ev = residual_tube(vz_ach[m] - vz_hat, slack=slack_vz)
         ew = residual_tube(wth_ach[m] - th_hat, slack=slack_wth)
         return ev, ew, {"n": int(np.count_nonzero(m)), "dt_s": dt}
 
-    ev_id, ew_id, meta_id = _tube_on(id_mask)
-    ev_val, ew_val, meta_val = _tube_on(val_mask)
+    air_joint = phase_mask(rows, "air_joint")
+    contact_id = phase_mask(rows, "contact_joint")
+    val_mask = phase_mask(rows, "val_joint")
+    if not np.any(val_mask):
+        j = np.flatnonzero(contact_id)
+        if j.size >= 80:
+            cut = j[0] + _split_idx(j.size)
+            val_mask = np.zeros(contact_id.size, dtype=bool)
+            val_mask[cut : j[-1] + 1] = True
+            contact_id[cut:] = False
+
+    ev_air, ew_air, _ = _tube_on(air_joint, G_air)
+    ev_id, ew_id, meta_id = _tube_on(contact_id, G_contact)
+    ev_val, ew_val, meta_val = _tube_on(val_mask, G_contact)
     val_cov_z = float("nan")
     val_cov_w = float("nan")
     if meta_val.get("n", 0) >= 32 and meta_id.get("n", 0) >= 32:
         dt = float(meta_val["dt_s"])
         m = val_mask & np.isfinite(uz) & np.isfinite(vz_ach)
-        vz_hat, th_hat = predict_2x2(uz[m], wth_u[m], dt, G)
+        vz_hat, th_hat = predict_2x2(uz[m], wth_u[m], dt, G_contact)
         ez = vz_ach[m] - vz_hat
         ew = wth_ach[m] - th_hat
         if ev_id["n"] and math.isfinite(float(ev_id.get("bar") or float("nan"))):
@@ -173,36 +184,67 @@ def analyze(
         if ew_id["n"] and math.isfinite(float(ew_id.get("bar") or float("nan"))):
             val_cov_w = float(np.mean(np.abs(ew[np.isfinite(ew)]) <= ew_id["bar"] + 1e-12))
 
-    keep_full = any(finite_channel(G[name]) and abs(float(G[name]["K"])) > 0.08 for name in ("zth", "thz"))
-    delays = [float(G[n]["T0_s"]) for n in ("zz", "thth") if math.isfinite(float(G[n].get("T0_s") or float("nan")))]
+    cj = contact_id & np.isfinite(uz) & np.isfinite(wth_u)
+    bar_vz = float(np.sqrt(np.mean(np.square(uz[cj])))) if np.any(cj) else float("nan")
+    bar_wth = float(np.sqrt(np.mean(np.square(wth_u[cj])))) if np.any(cj) else float("nan")
+    kzz = float(G_contact["zz"].get("K") or float("nan"))
+    kzth = float(G_contact["zth"].get("K") or float("nan"))
+    kthz = float(G_contact["thz"].get("K") or float("nan"))
+    kthth = float(G_contact["thth"].get("K") or float("nan"))
+    gamma = {
+        "zth": (
+            abs(kzth) * bar_wth / (abs(kzz) * bar_vz + 1e-12)
+            if all(math.isfinite(v) for v in (kzth, kzz, bar_vz, bar_wth))
+            else float("nan")
+        ),
+        "thz": (
+            abs(kthz) * bar_vz / (abs(kthth) * bar_wth + 1e-12)
+            if all(math.isfinite(v) for v in (kthz, kthth, bar_vz, bar_wth))
+            else float("nan")
+        ),
+        "note": "normalized coupling for later ablation; not a diagonal switch",
+    }
+    delays = [
+        float(G_contact[n]["T0_s"])
+        for n in ("zz", "thth")
+        if math.isfinite(float(G_contact[n].get("T0_s") or float("nan")))
+    ]
+    tube_contact = {
+        "e_vz": ev_id,
+        "e_wth": ew_id,
+        "e_vz_bar": ev_id.get("bar"),
+        "e_wth_bar": ew_id.get("bar"),
+    }
     payload = {
         "csv": str(csv_path),
         "align": {k: v for k, v in align.items() if k != "reason" or v},
         "lever_m": lever_m,
         "theta_axis": th,
-        "G": {name: {k: G[name].get(k) for k in ("T0_s", "Tp_s", "K", "n", "peak_accel")} for name in G_NAMES},
+        "G_air": _slim(G_air),
+        "G_contact": _slim(G_contact),
+        "G": _slim(G_contact),
+        "contract_model": "contact",
         "z_freqs_hz": list(Z_FREQS_HZ),
         "th_freqs_hz": list(TH_FREQS_HZ),
-        "tube": {
-            "e_vz": ev_id,
-            "e_wth": ew_id,
-            "e_vz_bar": ev_id.get("bar"),
-            "e_wth_bar": ew_id.get("bar"),
-        },
+        "tube_air": {"e_vz": ev_air, "e_wth": ew_air, "e_vz_bar": ev_air.get("bar"), "e_wth_bar": ew_air.get("bar")},
+        "tube_contact": tube_contact,
+        "tube": tube_contact,
         "tube_val": {"e_vz": ev_val, "e_wth": ew_val, "cover_vz": val_cov_z, "cover_wth": val_cov_w},
+        "gamma": gamma,
         "delay_s": float(np.median(delays)) if delays else float("nan"),
-        "peak_accel_z_m_s2": G["zz"].get("peak_accel"),
-        "peak_accel_th_rad_s2": G["thth"].get("peak_accel"),
-        "keep_full_2x2": bool(keep_full),
-        "keep_diagonal": (not keep_full),
+        "peak_accel_z_m_s2": G_contact["zz"].get("peak_accel"),
+        "peak_accel_th_rad_s2": G_contact["thth"].get("peak_accel"),
+        "keep_full_2x2": True,
+        "keep_diagonal": False,
         "collected_at": when,
-        "what": "execution contract y ∈ Ĝ u ⊕ W, not a force certificate",
+        "what": "y ∈ Ĝ_contact u ⊕ W_contact; air is baseline, never mixed into G",
     }
     data, visu = kind_dirs(KIND, preserve=csv_path)
     write_json(data / "exec.json", dump_jsonable(payload))
-    _plot_11(drawn, visu)
-    _plot_11_tube(rows, G, id_mask, val_mask, uz, wth_u, vz_ach, wth_ach, dt_col, t, visu)
-    t0 = 1e3 * float(G["zz"].get("T0_s") or float("nan"))
+    _plot_11(G_air, G_contact, visu)
+    _plot_11_tube(G_contact, contact_id, val_mask, uz, wth_u, vz_ach, wth_ach, dt_col, t, visu)
+    t0 = 1e3 * float(G_contact["zz"].get("T0_s") or float("nan"))
+    t0_air = 1e3 * float(G_air["zz"].get("T0_s") or float("nan"))
     write_readme(
         visu,
         f"""# 11_exec_2dof — 2×2 执行合同
@@ -211,47 +253,48 @@ def analyze(
 
 ## 结论
 
-- \(G_{{zz}}\): T0 = {fmt_finite(t0, '.1f')} ms，K = {fmt_finite(float(G['zz'].get('K') or float('nan')), '.3f')}。
-- \(G_{{\\theta\\theta}}\): T0 = {fmt_finite(1e3 * float(G['thth'].get('T0_s') or float('nan')), '.1f')} ms，K = {fmt_finite(float(G['thth'].get('K') or float('nan')), '.3f')}。
-- 交叉 \(G_{{z\\theta}}\) K = {fmt_finite(float(G['zth'].get('K') or float('nan')), '.3f')}，\(G_{{\\theta z}}\) K = {fmt_finite(float(G['thz'].get('K') or float('nan')), '.3f')}。
-  {'QP 预测用完整 2×2。' if keep_full else '交叉小，对角模型够用；tube 仍按 2×2 残差报。'}
-- 训练残差管：ē_v = {fmt_finite(1e3 * float(ev_id.get('bar') or float('nan')), '.2f')} mm/s，ē_ω = {fmt_finite(float(ev_id.get('bar') and ew_id.get('bar') or float('nan')), '.3f')} rad/s（max+|slack|，不是 p90）。
-- 同次 val 覆盖 vz {fmt_finite(val_cov_z, '.2f')}，ωθ {fmt_finite(val_cov_w, '.2f')}。硬 force row 要等 15 的独立覆盖。
-- 联合激励频率 z {Z_FREQS_HZ} Hz，θ {TH_FREQS_HZ} Hz，无共线。
+- 空气 \(G_{{zz}}\) T0 = {fmt_finite(t0_air, '.1f')} ms。接触（**合同**）\(G_{{zz}}\) T0 = {fmt_finite(t0, '.1f')} ms，K = {fmt_finite(kzz, '.3f')}。
+- 接触 \(G_{{\\theta\\theta}}\) K = {fmt_finite(kthth, '.3f')}；交叉 \(G_{{z\\theta}}\) K = {fmt_finite(kzth, '.3f')} m/s per rad/s，\(G_{{\\theta z}}\) K = {fmt_finite(kthz, '.3f')} rad/s per m/s。量纲不同，**不**用 0.08 自动对角化。永远保存 full 2×2。
+- 归一化耦合 γ_zθ = {fmt_finite(gamma['zth'], '.3f')}，γ_θz = {fmt_finite(gamma['thz'], '.3f')}（消融用，不是开关）。
+- 接触残差管：ē_v = {fmt_finite(1e3 * float(ev_id.get('bar') or float('nan')), '.2f')} mm/s，ē_ω = {fmt_finite(float(ew_id.get('bar') or float('nan')), '.3f')} rad/s。
+- 同次 val 覆盖 vz {fmt_finite(val_cov_z, '.2f')}，ωθ {fmt_finite(val_cov_w, '.2f')}。硬 force row 要等独立覆盖。
+- 空气和接触**没有**拼成一个 plant。QP 只用 \(G_{{\\rm contact}},\\mathcal W_{{\\rm contact}}\)。
 
 ## 图
 
-`exec_bode.png`：四个通道的 |G|。`exec_tube.png`：2×2 预测残差。
+`exec_bode.png`：接触实线，空气虚线。`exec_tube.png`：接触 2×2 残差。
 """,
     )
     print(
-        f"[11] Gzz T0={t0:.1f} ms  2x2={keep_full}  "
+        f"[11] G_contact zz T0={t0:.1f} ms  air T0={t0_air:.1f} ms  "
         f"ē_v={1e3 * float(ev_id.get('bar') or float('nan')):.2f} mm/s  data={data}",
         flush=True,
     )
     return payload
 
 
-def _plot_11(channels: list[dict], visu: Path) -> None:
+def _plot_11(G_air: dict, G_contact: dict, visu: Path) -> None:
     plt = mpl()
-    drawn = [c for c in channels if c.get("freq") is not None and np.size(c.get("freq"))]
     fig, axes = plt.subplots(2, 2, figsize=(3.50, 3.60), sharex=True, constrained_layout=True)
     labels = {"zz": r"$G_{zz}$", "zth": r"$G_{z\theta}$", "thz": r"$G_{\theta z}$", "thth": r"$G_{\theta\theta}$"}
     order = ["zz", "zth", "thz", "thth"]
     colors = (ACH, MINUS, CMD, "#009E73")
-    by = {c["name"]: c for c in drawn}
     for ax, name, color, letter in zip(axes.ravel(), order, colors, "abcd"):
-        ch = by.get(name)
-        if ch is not None:
-            f = ch["freq"]
+        for G, ls in ((G_contact, "-"), (G_air, "--")):
+            ch = G.get(name) or {}
+            f = ch.get("freq")
+            if f is None or not np.size(f):
+                continue
             use = (f >= 0.18) & (f <= 10.5)
-            if np.any(use):
-                ax.semilogx(
-                    f[use],
-                    20.0 * np.log10(np.maximum(ch["mag"][use], 1e-6)),
-                    color=color,
-                    lw=1.15,
-                )
+            if not np.any(use):
+                continue
+            ax.semilogx(
+                f[use],
+                20.0 * np.log10(np.maximum(ch["mag"][use], 1e-6)),
+                color=color,
+                lw=1.15,
+                ls=ls,
+            )
         ax.set_ylabel(r"$|G|$ (dB)")
         ax.grid(True, which="major", alpha=0.28)
         ax.set_xlim(0.18, 10.5)
@@ -263,7 +306,7 @@ def _plot_11(channels: list[dict], visu: Path) -> None:
     plt.close(fig)
 
 
-def _plot_11_tube(rows, G, id_mask, val_mask, uz, wth_u, vz_ach, wth_ach, dt_col, t, visu: Path) -> None:
+def _plot_11_tube(G, id_mask, val_mask, uz, wth_u, vz_ach, wth_ach, dt_col, t, visu: Path) -> None:
     plt = mpl()
     fig, axes = plt.subplots(2, 1, figsize=(3.50, 3.60), sharex=True, constrained_layout=True)
     m = (id_mask | val_mask) & np.isfinite(t)
@@ -315,6 +358,7 @@ def main() -> int:
     print(
         f"[PLAN] MOVEJ mid, air uz/ωθ chirp + freq-split joint, "
         f"then preload F≈{args.contact_n:.1f} N with disp-limited 2×2  "
+        f"G_air and G_contact fitted separately  "
         f"z lines {Z_FREQS_HZ}  θ lines {TH_FREQS_HZ}  force loop OFF",
         flush=True,
     )

@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
 """Force–moment–scan coupling H.  Force loop OFF.
 
-What: quasi-static z/tilt, hold, then scans with *independent* small
-      δvz, δωθ on top of ρ (disjoint frequencies), flat and known wedge,
-      plus ±tilt for sign.  --alpha-deg is the known attack angle of
-      this take and is written to DATA/hs_alphas.csv.
-Why: a scan with vz≃0, ωθ≃0, ρ≠0 cannot identify [Hz, Hθ, Hs].
-     One slope_deg as metadata cannot calibrate α.
+What: one known attack angle per take.  Seek, settle, then scans with
+      independent δvz, δωθ on two ρ and reverse, plus ±tilt for sign.
+Why: H = H(α, F, surface).  Flat and a wedge in the same take must not
+     share one regression.  Run α = −10/−5/0/+5/+10 separately.
 
-Sign identification is enough for qualitative tilt correction.
-An angle estimator needs the α = −10…+10° matrix across takes.
+Moment is τ_C = τ_TCP − r_TC × F.  Tilt angle is
+θ = Log(R_ref^T R)^∨ · e_θ, not global Euler ry.
 """
 
 from __future__ import annotations
@@ -27,7 +25,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from contact_log import ContactLogger, axis_twist
 from goto_mid import go_mid_from_args
 from id_common import add_contact_args, load_aligned, stash_window_a
-from id_math import dump_jsonable, scan_perturb_twists
+from id_math import dump_jsonable, scan_perturb_twists, wrench_at_offset
 from io_csv import col, write_json
 from paper_fig import ACH, MINUS, mpl, save
 from paths import DATA, add_playground, dry_exit, kind_dirs, stamp, write_readme
@@ -38,6 +36,7 @@ from window_a import (
     integrate_along_axis,
     phase_mask,
     pose6,
+    relative_axis_angle,
     tool_z_displacement,
     twist_ach6,
     twist_cmd6,
@@ -134,6 +133,7 @@ def analyze(
     scan_axis: int = 0,
     theta_axis: int = 4,
     site: str = "",
+    r_tcp_m: tuple[float, float, float] = (0.0, 0.0, 0.03),
 ) -> dict:
     rows, align = load_aligned(Path(csv_path), window_a_csv or None)
     t = col(rows, "t_wall_s", "t_mono_s")
@@ -144,43 +144,32 @@ def analyze(
     dx_z = tool_z_displacement(pose)
     ds = integrate_along_axis(pose, scan_axis)
     fz = wrench[:, 2]
-    tau = wrench[:, 4]
+    r = np.asarray(r_tcp_m, dtype=float).reshape(3)
+    wrench_c = wrench_at_offset(wrench, r)
+    e_th = np.zeros(3, dtype=float)
+    e_th[int(theta_axis) % 3] = 1.0
+    tau_th = wrench_c[:, 3:6] @ e_th
+    theta = relative_axis_angle(pose, int(theta_axis) % 3)
     torque_ok = has_torque(rows)
     if alpha_deg is None or not math.isfinite(float(alpha_deg)):
         alpha_deg = slope_deg
     quasi_z = _slope(dx_z[phase_mask(rows, "quasi_z")], fz[phase_mask(rows, "quasi_z")])
-    quasi_th = _slope(
-        col(rows, "pose_ry", "pose_meas_ry")[phase_mask(rows, "quasi_th")],
-        tau[phase_mask(rows, "quasi_th")],
-    )
+    quasi_th = _slope(theta[phase_mask(rows, "quasi_th")], tau_th[phase_mask(rows, "quasi_th")])
     hold_press = _mean_rate(t, fz, phase_mask(rows, "hold_press"))
     hold_unload = _mean_rate(t, fz, phase_mask(rows, "hold_unload"))
     scans = {}
-    for name in (
-        "scan_flat_ref",
-        "scan_flat_slow",
-        "scan_flat_fast",
-        "scan_slope_slow",
-        "scan_slope_fast",
-        "scan_rev",
-    ):
+    for name in ("scan_slow", "scan_fast", "scan_rev"):
         mask = phase_mask(rows, name)
         scans[name] = {
             "df_ds": _slope(ds[mask], fz[mask]),
             "rho_proxy_m_s": float(np.nanmedian(np.abs(ach[mask, scan_axis]))) if np.any(mask) else float("nan"),
             "n": int(np.count_nonzero(mask)),
         }
-    hs_flat = float(scans["scan_flat_fast"]["df_ds"].get("slope") or float("nan"))
-    hs_slope = float(scans["scan_slope_fast"]["df_ds"].get("slope") or float("nan"))
-    hs_identifiable = (
-        math.isfinite(hs_flat) and math.isfinite(hs_slope) and abs(hs_slope - hs_flat) > 20.0
-    )
+    hs_this = float(scans["scan_fast"]["df_ds"].get("slope") or float("nan"))
     tilt_up = _mean_rate(t, fz, phase_mask(rows, "tilt_up"))
     tilt_dn = _mean_rate(t, fz, phase_mask(rows, "tilt_dn"))
     sign_ok = math.isfinite(tilt_up) and math.isfinite(tilt_dn) and (tilt_up * tilt_dn) < 0.0
-    mask_reg = phase_mask(
-        rows, "scan_flat_slow", "scan_flat_fast", "scan_slope_slow", "scan_slope_fast", "scan_rev"
-    )
+    mask_reg = phase_mask(rows, "scan_slow", "scan_fast", "scan_rev")
     dt = np.diff(t, prepend=t[0])
     dt = np.where(np.isfinite(dt) & (dt > 1e-4), dt, 0.005)
     df = np.diff(fz, prepend=fz[0]) / dt
@@ -193,7 +182,8 @@ def analyze(
     H = _fit_H(vz[mask_reg], wth[mask_reg], rho[mask_reg], df[mask_reg])
     rank_ok = int(H.get("rank") or 0) >= 3
     F_mean = float(np.nanmean(fz[mask_reg])) if np.any(mask_reg) else float("nan")
-    tau_mean = float(np.nanmean(tau[mask_reg])) if np.any(mask_reg) else float("nan")
+    tau_mean = float(np.nanmean(tau_th[mask_reg])) if np.any(mask_reg) else float("nan")
+    hs_identifiable = bool(rank_ok and math.isfinite(float(H.get("Hs") or float("nan"))))
     payload = {
         "csv": str(csv_path),
         "align": align,
@@ -204,9 +194,8 @@ def analyze(
         "hold_press_n_s": hold_press,
         "hold_unload_n_s": hold_unload,
         "scans": scans,
-        "Hs_flat_n_m": hs_flat,
-        "Hs_slope_n_m": hs_slope,
-        "Hs_identifiable": bool(hs_identifiable),
+        "Hs_n_m": hs_this,
+        "Hs_identifiable": hs_identifiable,
         "H": H,
         "Hz": H.get("Hz"),
         "Hth": H.get("Hth"),
@@ -218,47 +207,48 @@ def analyze(
         "tilt_dn_dfdt": tilt_dn,
         "tilt_sign_opposite": bool(sign_ok),
         "alpha_deg": alpha_deg,
-        "slope_deg": slope_deg,
-        "features": {"F_mean_n": F_mean, "tau_mean_nm": tau_mean, "df_ds_n_m": hs_slope},
+        "r_C_tool_m": [float(r[0]), float(r[1]), float(r[2])],
+        "theta_source": "so3_log_relative",
+        "tau_source": "tau_C = tau_TCP - r × F",
+        "features": {"F_mean_n": F_mean, "tau_C_mean_nm": tau_mean, "df_ds_n_m": hs_this},
         "scan_axis": scan_axis,
         "theta_axis": theta_axis,
         "site": site,
         "collected_at": when,
-        "what": "Hη, Hs from independent perturbations; not a 90-deg bounce law",
+        "what": "H(α) from one surface per take; not a mixed flat+wedge plant",
     }
     data, visu = kind_dirs(KIND, preserve=csv_path)
     write_json(data / "hs.json", dump_jsonable(payload))
-    _plot_13(ds, fz, phase_mask(rows, "scan_flat_fast"), phase_mask(rows, "scan_slope_fast"), visu)
+    _plot_13(ds, fz, phase_mask(rows, "scan_slow"), phase_mask(rows, "scan_fast"), visu)
     if rank_ok:
         h_note = (
-            f"回归秩 3，H = [{fmt_finite(H.get('Hz'), '.1f')}, "
+            f"这一拍 α = {fmt_finite(float(alpha_deg) if alpha_deg is not None else float('nan'), '.1f')}°，"
+            f"秩 3，H = [{fmt_finite(H.get('Hz'), '.1f')}, "
             f"{fmt_finite(H.get('Hth'), '.1f')}, {fmt_finite(H.get('Hs'), '.1f')}]。"
         )
     else:
-        h_note = f"回归秩 {H.get('rank')}（条件数 {fmt_finite(H.get('cond'), '.1f')}）。还不能把完整 H 写进 QP。"
-    hs_note = (
-        "坠角与平面的 df/ds 能分开。"
-        if hs_identifiable
-        else "平面/坠角 df/ds 分不开：Hs 先当扰动包络。"
-    )
+        h_note = (
+            f"这一拍 α = {fmt_finite(float(alpha_deg) if alpha_deg is not None else float('nan'), '.1f')}°，"
+            f"回归秩 {H.get('rank')}（条件数 {fmt_finite(H.get('cond'), '.1f')}）。还不能把完整 H 写进 QP。"
+        )
     write_readme(
         visu,
         f"""# 13_contact_hs — 力–力矩–扫描耦合
 
-采集：`{when}` · filter OFF · 力环关 · 已知 α = {fmt_finite(float(alpha_deg) if alpha_deg is not None else float('nan'), '.1f')}° · 力矩列 {'在' if torque_ok else '**缺失**'}
+采集：`{when}` · filter OFF · 力环关 · **一拍一个 α** = {fmt_finite(float(alpha_deg) if alpha_deg is not None else float('nan'), '.1f')}° · 力矩列 {'在' if torque_ok else '**缺失**'}
 
 ## 结论
 
-- 准静态 Ke ≈ {fmt_finite(quasi_z.get('slope'), '.1f')} N/m。
-- {h_note} {hs_note}
+- 准静态 Ke ≈ {fmt_finite(quasi_z.get('slope'), '.1f')} N/m。k_θ 用 τ_C 对相对 Log 角，不是 global ry。
+- {h_note}
 - 倾角增大/减小的 df/dt 符号{('相反，可做定性调节。' if sign_ok else '没有可靠反号，不要写硬攻角约束。')}
-- 特征 (F̄, τ̄, df/ds) = ({fmt_finite(F_mean, '.2f')}, {fmt_finite(tau_mean, '.3f')}, {fmt_finite(hs_slope, '.1f')})。
-  粗 α 映射要 −10/−5/0/+5/+10° 各一拍，见 `{ALPHA_CSV.name}`。
-- 不要把 90° 写成物理定律。
+- 特征 (F̄, τ_C̄, df/ds) = ({fmt_finite(F_mean, '.2f')}, {fmt_finite(tau_mean, '.3f')}, {fmt_finite(hs_this, '.1f')})。
+  粗 α 映射要 −10/−5/0/+5/+10° **各一拍**，见 `{ALPHA_CSV.name}`。不要在同一 take 里换表面。
+- r_C = {r.tolist()} m（tool）。不要把 90° 写成物理定律。
 
 ## 图
 
-`hs_scan.png`：平面 vs 坠角扫描的 Fz 对路径弧长。
+`hs_scan.png`：这一拍两个 ρ 的 Fz 对路径弧长。
 """,
     )
     append_alpha_row(
@@ -268,7 +258,7 @@ def analyze(
             "site": site,
             "F_mean_n": f"{F_mean:.3f}" if math.isfinite(F_mean) else "",
             "tau_mean_nm": f"{tau_mean:.4f}" if math.isfinite(tau_mean) else "",
-            "df_ds_n_m": f"{hs_slope:.3f}" if math.isfinite(hs_slope) else "",
+            "df_ds_n_m": f"{hs_this:.3f}" if math.isfinite(hs_this) else "",
             "Hz": f"{float(H.get('Hz') or float('nan')):.4f}" if math.isfinite(float(H.get("Hz") or float("nan"))) else "",
             "Hth": f"{float(H.get('Hth') or float('nan')):.4f}" if math.isfinite(float(H.get("Hth") or float("nan"))) else "",
             "Hs": f"{float(H.get('Hs') or float('nan')):.4f}" if math.isfinite(float(H.get("Hs") or float("nan"))) else "",
@@ -277,19 +267,19 @@ def analyze(
         }
     )
     print(
-        f"[13] rank={H.get('rank')}  Hs_id={hs_identifiable}  α={alpha_deg}  data={data}",
+        f"[13] rank={H.get('rank')}  α={alpha_deg}  Hs={H.get('Hs')}  data={data}",
         flush=True,
     )
     return payload
 
 
-def _plot_13(ds, fz, flat, slope, visu: Path) -> None:
+def _plot_13(ds, fz, slow, fast, visu: Path) -> None:
     plt = mpl()
     fig, ax = plt.subplots(figsize=(3.50, 2.40), constrained_layout=True)
-    if np.any(flat):
-        ax.plot(1e3 * ds[flat], fz[flat], color=ACH, lw=1.15)
-    if np.any(slope):
-        ax.plot(1e3 * ds[slope], fz[slope], color=MINUS, lw=1.15)
+    if np.any(slow):
+        ax.plot(1e3 * ds[slow], fz[slow], color=ACH, lw=1.15)
+    if np.any(fast):
+        ax.plot(1e3 * ds[fast], fz[fast], color=MINUS, lw=1.15)
     ax.set_xlabel("path travel (mm)")
     ax.set_ylabel("Fz (N)")
     ax.grid(True, alpha=0.28)
@@ -300,8 +290,11 @@ def _plot_13(ds, fz, flat, slope, visu: Path) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     add_contact_args(p, abort_n=5.50, contact_n=0.40)
-    p.add_argument("--alpha-deg", type=float, default=float("nan"), help="known wedge / attack angle of this take")
+    p.add_argument("--alpha-deg", type=float, default=float("nan"), help="known attack angle of THIS take; required to collect")
     p.add_argument("--slope-deg", type=float, default=float("nan"), help="alias of --alpha-deg")
+    p.add_argument("--rx-mm", type=float, default=0.0)
+    p.add_argument("--ry-mm", type=float, default=0.0)
+    p.add_argument("--rz-mm", type=float, default=30.0, help="tool-frame contact offset r_C")
     p.add_argument("--site", default="")
     p.add_argument("--scan-mm-s", type=float, default=8.0)
     p.add_argument("--scan-fast-mm-s", type=float, default=16.0)
@@ -314,12 +307,15 @@ def main() -> int:
     when = stamp()
     alpha = args.alpha_deg if math.isfinite(args.alpha_deg) else args.slope_deg
     print(
-        f"[PLAN] MOVEJ mid, seek, quasi, hold, flat+slope scans with "
-        f"independent δvz/δωθ, ±tilt  α={alpha}  force loop OFF",
+        f"[PLAN] MOVEJ mid, one-α take α={alpha}°, seek, quasi, hold, "
+        f"scan ρ1/ρ2/reverse + independent δvz/δωθ, ±tilt  "
+        f"r_C=[{args.rx_mm:.1f},{args.ry_mm:.1f},{args.rz_mm:.1f}] mm  force loop OFF  "
+        "do not change the wedge mid-take",
         flush=True,
     )
     if dry_exit(args):
         return 0
+    r_tcp = (args.rx_mm / 1000.0, args.ry_mm / 1000.0, args.rz_mm / 1000.0)
     if args.csv:
         try:
             analyze(
@@ -331,11 +327,15 @@ def main() -> int:
                 scan_axis=args.scan_axis,
                 theta_axis=args.theta_axis,
                 site=args.site,
+                r_tcp_m=r_tcp,
             )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)
             return 2
         return 0
+    if not math.isfinite(float(alpha)):
+        print("[ERR] --alpha-deg is required for a collect (0 = flat). One angle per take.", flush=True)
+        return 2
     if not args.window_a_csv:
         print("[ERR] --window-a-csv is required", flush=True)
         return 2
@@ -387,20 +387,11 @@ def main() -> int:
             return 0 if srv.aborted else 130
         if not srv.hold(0.0, 1.0, "hold_unload", check_abort=False):
             return 0 if srv.aborted else 130
-        if not srv.hold(axis_twist(args.scan_axis, slow), 0.7, "scan_flat_ref"):
+        if not _pert(slow, args.scan_s, 3, "scan_slow"):
             return 0 if srv.aborted else 130
-        if not _pert(slow, args.scan_s, 3, "scan_flat_slow"):
+        if not _pert(fast, args.scan_s, 4, "scan_fast"):
             return 0 if srv.aborted else 130
-        if not _pert(fast, args.scan_s, 4, "scan_flat_fast"):
-            return 0 if srv.aborted else 130
-        print("[SCAN] put the probe on the known wedge, then the next scans run", flush=True)
-        if not srv.hold(0.0, 1.0, "pause_slope", check_abort=False):
-            return 130
-        if not _pert(slow, args.scan_s, 5, "scan_slope_slow"):
-            return 0 if srv.aborted else 130
-        if not _pert(fast, args.scan_s, 6, "scan_slope_fast"):
-            return 0 if srv.aborted else 130
-        if not _pert(-slow, args.scan_s, 7, "scan_rev"):
+        if not _pert(-slow, args.scan_s, 5, "scan_rev"):
             return 0 if srv.aborted else 130
         if not srv.hold(axis_twist(args.theta_axis, wth), 0.5, "tilt_up"):
             return 0 if srv.aborted else 130
@@ -425,6 +416,7 @@ def main() -> int:
                 scan_axis=args.scan_axis,
                 theta_axis=args.theta_axis,
                 site=args.site,
+                r_tcp_m=r_tcp,
             )
     except AlignmentError as exc:
         print(f"[ERR] {exc}", flush=True)

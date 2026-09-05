@@ -259,30 +259,79 @@ def stiffness_envelope(
     ke: np.ndarray,
     f_lo: float,
     f_hi: float,
+    *,
+    eps_f: float = 0.15,
 ) -> dict:
+    """Local Ke on [f_lo, f_hi].  work_band_reached only if the samples span the band."""
+
     m = (
         np.isfinite(f_center)
         & np.isfinite(ke)
         & (f_center >= float(f_lo))
         & (f_center <= float(f_hi))
     )
+    empty = {
+        "n": 0,
+        "ke_min": float("nan"),
+        "ke_max": float("nan"),
+        "ke_bar": float("nan"),
+        "ke_median": float("nan"),
+        "f_valid_min": float("nan"),
+        "f_valid_max": float("nan"),
+        "work_band_reached": False,
+    }
     if not np.any(m):
-        return {
-            "n": 0,
-            "ke_min": float("nan"),
-            "ke_max": float("nan"),
-            "ke_bar": float("nan"),
-            "ke_median": float("nan"),
-            "work_band_reached": False,
-        }
+        return empty
     vals = ke[m]
+    fvals = f_center[m]
+    fmin = float(np.min(fvals))
+    fmax = float(np.max(fvals))
+    reached = fmin <= float(f_lo) + float(eps_f) and fmax >= float(f_hi) - float(eps_f)
     return {
         "n": int(np.count_nonzero(m)),
         "ke_min": float(np.min(vals)),
         "ke_max": float(np.max(vals)),
         "ke_bar": float(np.max(np.abs(vals))),
         "ke_median": float(np.median(vals)),
-        "work_band_reached": True,
+        "f_valid_min": fmin,
+        "f_valid_max": fmax,
+        "work_band_reached": bool(reached),
+        "local_span_reached": bool(reached),
+    }
+
+
+def work_band_spanned(
+    f: np.ndarray,
+    f_lo: float,
+    f_hi: float,
+    *,
+    eps_f: float = 0.15,
+) -> dict:
+    """True only if the raw force trajectory covers [f_lo, f_hi] to within ε.
+
+    A single in-band sample is not coverage.  Window-mean F_center can sit
+    ~0.2–0.5 N inside the peak on a stiff pad; use the raw limb Fz here.
+    """
+
+    ff = np.asarray(f, dtype=float)
+    ff = ff[np.isfinite(ff)]
+    empty = {
+        "n": 0,
+        "f_min": float("nan"),
+        "f_max": float("nan"),
+        "work_band_reached": False,
+    }
+    if ff.size == 0:
+        return empty
+    fmin = float(np.min(ff))
+    fmax = float(np.max(ff))
+    return {
+        "n": int(ff.size),
+        "f_min": fmin,
+        "f_max": fmax,
+        "work_band_reached": bool(
+            fmin <= float(f_lo) + float(eps_f) and fmax >= float(f_hi) - float(eps_f)
+        ),
     }
 
 
@@ -403,6 +452,24 @@ def prefix_covers(d_true: np.ndarray, d_bound: np.ndarray, *, slack: float = 0.0
         "frac": float(np.mean(covered)),
         "max_violation": mx,
     }
+
+
+def predicted_twist(cmd: np.ndarray, dt: float, g: dict, *, theta_axis: int = 4) -> np.ndarray:
+    """V̂ = Ĝ u on (vz, ωθ); other axes stay as commanded."""
+
+    cmd = np.asarray(cmd, dtype=float)
+    hat = np.array(cmd, copy=True)
+    if cmd.ndim == 1:
+        vz, wth = predict_2x2(
+            np.asarray([cmd[2]]), np.asarray([cmd[int(theta_axis)]]), dt, g
+        )
+        hat[2] = float(vz[0])
+        hat[int(theta_axis)] = float(wth[0])
+        return hat
+    vz, wth = predict_2x2(cmd[:, 2], cmd[:, int(theta_axis)], dt, g)
+    hat[:, 2] = vz
+    hat[:, int(theta_axis)] = wth
+    return hat
 
 
 def finite_channel(ch: dict) -> bool:

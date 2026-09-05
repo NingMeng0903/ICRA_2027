@@ -151,7 +151,7 @@ def analyze(csv_path: Path, *, when: str, window_a_csv: str = "", ax_mm: float =
 - 空气 **T0 = {fmt_finite(t0_a, '.1f')} ms**，Tp = {fmt_finite(1e3 * float(air.get('Tp_s') or float('nan')), '.1f')} ms，K = {fmt_finite(float(air.get('K') or float('nan')), '.3f')}。
 - 接触 **T0 = {fmt_finite(t0_c, '.1f')} ms**，Tp = {fmt_finite(1e3 * float(contact.get('Tp_s') or float('nan')), '.1f')} ms，K = {fmt_finite(float(contact.get('K') or float('nan')), '.3f')}。
 - 接触残差（空气模型）\\(\\mathcal{{E}}_v\\)：p95 = {fmt_finite(1e3 * float(ev.get('p95') or float('nan')), '.2f')} mm/s，max = {fmt_finite(1e3 * float(ev.get('max_abs') or float('nan')), '.2f')} mm/s。这比单独一个 T0 更重要。
-- 接触段实际 pose 峰–峰位移 {fmt_finite(ax_c, '.2f')} mm（命令 Ax = {ax_mm:.2f} mm）。若接近 4 mm，激励仍然太大。
+- 接触段实际 pose 相对起始最大偏移 {fmt_finite(ax_c, '.2f')} mm（命令 Ax = {ax_mm:.2f} mm，不是峰–峰）。若接近 4 mm，激励仍然太大。
 - 对照 03 T0 = {fmt_finite(1e3 * float(air_ref.get('T0_s') or float('nan')), '.1f')} ms。不要对力 Bode。
 
 ## 图
