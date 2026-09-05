@@ -42,7 +42,8 @@ def main() -> int:
         print(
             f"[PLAN] MOVEJ mid-stroke, then seek {args.seek_mm_s:.1f} mm/s until "
             f"F>{args.contact_n:.2f} N, then {args.amp_mm_s:.1f} mm/s chirp  "
-            f"force loop OFF  abort F>{args.abort_n:.1f}",
+            f"force loop OFF  abort F>{args.abort_n:.1f}  "
+            f"compare T0 to 03, not a force Bode",
             flush=True,
         )
     if dry_exit(args):

@@ -80,6 +80,50 @@ Source: `DATA/03_chirp/chirp.csv` observed with T0=28 ms, Tp=14 ms, K=0.96. No n
 
 Command, achieved velocity, and the FOPDT prediction. The lower trace is what is left after the delay model; it stays small across the chirp.
 
+## 08 — environment stiffness
+
+Source: `DATA/08_ke/press.csv` merged with `window_a.csv`. Δx is TCP pose along the first-press tool-Z axis. Command integration is not Ke.
+
+### `08_ke/press`
+
+- **a** — Fz.
+- **b** — tool-Z travel from pose. The shade is the press interval used for ΔF/Δx.
+
+## 11 — two feedback DoFs
+
+Source: `DATA/11_exec_2dof/exec.csv` + `window_a.csv`.
+
+### `11_exec_2dof/exec_bode`
+
+|G| for the channels that were actually collected (air / preload, uz and ωθ). A small ωθ→vz magnitude in 0.3–3 Hz means the diagonal model is enough.
+
+## 12 — stop tail
+
+Source: `DATA/12_stop_tail/tail.csv` + `window_a.csv`.
+
+### `12_stop_tail/stop_tail`
+
+- **a** — Fz. Vertical lines are stop edges.
+- **b** — tool-Z travel after those edges. A late rise after a zero command is committed motion.
+
+## 13 — scan-induced force
+
+Source: `DATA/13_contact_hs/hs.csv` + `window_a.csv`.
+
+### `13_contact_hs/hs_scan`
+
+Fz against path travel. One trace is the flat scan, one is the known slope. If they coincide, Hs is not identified.
+
+## 14 — port power
+
+Source: `DATA/14_port_energy/energy.csv` + `window_a.csv`.
+
+### `14_port_energy/port_power`
+
+Same-tick command power, achieved-twist power, pose-increment power, and the conservative bound. A press-then-retract pass goes negative then recovers; the prefix debt is the running max of the negative integral.
+
 ## Later scripts
 
 Same rules. Caption goes in this file when the figure is added. Folder name matches the script kind.
+
+Uncollected 07/08/11–14 may keep a purpose stub in `VISU/<kind>/README.md`. After a collect that file must hold numbers and a verdict. If 08 hard-pad Ke and 12 tails stay far below 1 N, C1 is academically true and experimentally slack. If 12 does not split two queues at the same (F, v), drop the delay-augmented state. If 13 cannot separate Hs, drop ρ as a theory core. If 14 fails coverage, the paper has no passivity claim.
