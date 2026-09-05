@@ -393,6 +393,7 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
+        secondary=args.secondary,
     )
     try:
         srv.start_twist()

@@ -47,6 +47,19 @@ def test_disp_chirp_stays_inside_ax() -> None:
     print("[OK] disp chirp |x| < Ax", flush=True)
 
 
+def test_disp_chirp_onesided_never_retracts_past_start() -> None:
+    dt = 0.005
+    T = 8.0
+    ax = 0.0002
+    t = np.arange(0.0, T, dt)
+    v = disp_chirp_velocity(t, ax, 0.3, 8.0, T, onesided=True)
+    x = np.cumsum(v) * dt
+    assert float(np.min(x)) > -1e-6
+    assert float(np.max(x)) < 2.2 * ax + 1e-6
+    assert float(v[0]) >= -1e-9
+    print("[OK] onesided chirp x in [0, 2Ax]", flush=True)
+
+
 def test_freq_split_disjoint() -> None:
     assert not (set(Z_FREQS_HZ) & set(TH_FREQS_HZ))
     seq = freq_split_disp_multisine(0.005, 4.0, 0.0004, 0.01, seed=1)
@@ -189,6 +202,7 @@ def test_matched_state_gate() -> None:
 
 if __name__ == "__main__":
     test_disp_chirp_stays_inside_ax()
+    test_disp_chirp_onesided_never_retracts_past_start()
     test_freq_split_disjoint()
     test_local_ke_envelope()
     test_so3_omega_and_pose_twist()

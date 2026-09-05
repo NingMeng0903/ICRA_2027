@@ -26,6 +26,12 @@ def add_contact_args(parser, *, abort_n: float, contact_n: float = 0.40) -> None
     parser.add_argument("--theta-axis", type=int, default=4, help="ωθ index in the 6-D twist (default wy)")
     parser.add_argument("--scan-axis", type=int, default=0, help="path tangent index (default vx)")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--secondary",
+        default="payload_id",
+        choices=("payload_id", "track", "hold"),
+        help="SERVO_TWIST rail/nullspace policy (ID default: lock rail)",
+    )
     add_window_a_arg(parser)
     add_movej_args(parser)
 

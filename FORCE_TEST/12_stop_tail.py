@@ -376,6 +376,7 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
+        secondary=args.secondary,
     )
     u_match = args.u_match_mm_s / 1000.0
     u_burst = args.u_burst_mm_s / 1000.0

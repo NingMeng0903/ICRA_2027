@@ -352,6 +352,7 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
+        secondary=args.secondary,
     )
     slow = args.scan_mm_s / 1000.0
     fast = args.scan_fast_mm_s / 1000.0

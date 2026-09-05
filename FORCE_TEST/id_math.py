@@ -38,11 +38,21 @@ def disp_chirp_velocity(
     f0: float,
     f1: float,
     seconds: float,
+    *,
+    onesided: bool = False,
 ) -> np.ndarray:
-    """v = Ax ω cos φ so x = Ax sin φ stays inside ±Ax (no 1/f blow-up)."""
+    """Displacement-limited chirp velocity.
+
+    Two-sided: x = Ax sin φ ∈ [−Ax, Ax], v = Ax ω cos φ.
+    One-sided (contact): x = Ax (1 − cos φ) ∈ [0, 2Ax], v = Ax ω sin φ.
+    One-sided never commands a retract past the pose where the chirp started.
+    """
 
     omega, phi = exp_chirp_omega_phi(t, f0, f1, seconds)
-    return float(ax_m) * omega * np.cos(phi)
+    ax = float(ax_m)
+    if onesided:
+        return ax * omega * np.sin(phi)
+    return ax * omega * np.cos(phi)
 
 
 def disp_multisine(

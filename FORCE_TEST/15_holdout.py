@@ -300,6 +300,7 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
+        secondary=args.secondary,
     )
     rng = np.random.default_rng(int(args.seed))
     vz = abs(args.press_mm_s) / 1000.0 * float(rng.choice([0.8, 1.0, 1.2]))

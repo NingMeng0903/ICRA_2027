@@ -45,6 +45,7 @@ class ServoLogger:
         log_csv: Path,
         axis: int = 2,
         abort_n: float | None = None,
+        secondary: str = "payload_id",
     ) -> None:
         from peirastic.core.ipc import CommandClient, MotionBus, TwistBus
 
@@ -71,13 +72,20 @@ class ServoLogger:
         self.n_rows = 0
         self.last_fz = float("nan")
         self.aborted = False
+        self.secondary = str(secondary).strip() or "payload_id"
 
     def start_twist(self) -> None:
         from peirastic.core.modes import Mode, ModeRequest
 
-        self.client.set_mode(ModeRequest(Mode.SERVO_TWIST, {"filter": False}))
+        self.client.set_mode(
+            ModeRequest(
+                Mode.SERVO_TWIST,
+                {"filter": False, "secondary": self.secondary},
+            )
+        )
         print(
-            f"[MODE] SERVO_TWIST  filter OFF  axis={self.axis}  force loop OFF  log={self.log_csv}",
+            f"[MODE] SERVO_TWIST  filter OFF  secondary={self.secondary}  "
+            f"axis={self.axis}  force loop OFF  log={self.log_csv}",
             flush=True,
         )
 

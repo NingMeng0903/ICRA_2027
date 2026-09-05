@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Same inner Gv, already in light contact.  Force loop OFF.
 
-What: air then contact, both with a *displacement-limited* chirp
-      (x = Ax sin φ, Ax ≈ 0.4 mm, 0.3–8 Hz).  Preload ≈ 1.2 N.
-Why: a 5 mm/s / 0.2 Hz velocity chirp walks ~4 mm and unloads or
-     buries the pad.  This file asks whether 03's Tn still holds,
-     and returns the residual set Ev = v_ach − Ĝ_air u.
+What: air then contact, both displacement-limited.  Air is two-sided
+      (x = Ax sin φ, Ax ≈ 0.4 mm) at the mid-stroke TCP, which must
+      already sit 10–25 mm above the pad.  Approach is two-stage and
+      travel-capped: fast until a kiss, then slow to ~1.2 N.  Contact
+      chirp is one-sided (x = Ax (1 − cos φ) ∈ [0, 2Ax]).
+Why: a two-sided ±Ax chirp on a just-kissed slope unloads on the
+     first negative half-cycle.  A 5 mm/s / 0.2 Hz velocity chirp
+     walks ~4 mm.  This file asks whether 03's Tn still holds, and
+     returns Ev = v_ach − Ĝ_air u.
 
 Not a force Bode.  Hard first-touch is out of scope.
 """
@@ -142,21 +146,21 @@ def analyze(csv_path: Path, *, when: str, window_a_csv: str = "", ax_mm: float =
     ax_c = pose_amp.get("contact", {}).get("peak_mm", float("nan"))
     write_readme(
         visu,
-        f"""# 07_contact_gv — 限位移轻接触 Gv
+        f"""# 07_contact_gv — displacement-limited contact Gv
 
-采集：`{when}` · filter OFF · 力环关 · 对齐中位 {fmt_finite(align.get('gap_median_ms', float('nan')), '.1f')} ms
+Take `{when}` · filter OFF · force loop OFF · Window A median gap {fmt_finite(align.get('gap_median_ms', float('nan')), '.1f')} ms · clock resets {align.get('wa_clock_resets', 0)} (used latest SERVO slice)
 
-## 结论
+## Verdict
 
-- 空气 **T0 = {fmt_finite(t0_a, '.1f')} ms**，Tp = {fmt_finite(1e3 * float(air.get('Tp_s') or float('nan')), '.1f')} ms，K = {fmt_finite(float(air.get('K') or float('nan')), '.3f')}。
-- 接触 **T0 = {fmt_finite(t0_c, '.1f')} ms**，Tp = {fmt_finite(1e3 * float(contact.get('Tp_s') or float('nan')), '.1f')} ms，K = {fmt_finite(float(contact.get('K') or float('nan')), '.3f')}。
-- 接触残差（空气模型）\\(\\mathcal{{E}}_v\\)：p95 = {fmt_finite(1e3 * float(ev.get('p95') or float('nan')), '.2f')} mm/s，max = {fmt_finite(1e3 * float(ev.get('max_abs') or float('nan')), '.2f')} mm/s。这比单独一个 T0 更重要。
-- 接触段实际 pose 相对起始最大偏移 {fmt_finite(ax_c, '.2f')} mm（命令 Ax = {ax_mm:.2f} mm，不是峰–峰）。若接近 4 mm，激励仍然太大。
-- 对照 03 T0 = {fmt_finite(1e3 * float(air_ref.get('T0_s') or float('nan')), '.1f')} ms。不要对力 Bode。
+- Air **T0 = {fmt_finite(t0_a, '.1f')} ms**, Tp = {fmt_finite(1e3 * float(air.get('Tp_s') or float('nan')), '.1f')} ms, K = {fmt_finite(float(air.get('K') or float('nan')), '.3f')}.
+- Contact **T0 = {fmt_finite(t0_c, '.1f')} ms**, Tp = {fmt_finite(1e3 * float(contact.get('Tp_s') or float('nan')), '.1f')} ms, K = {fmt_finite(float(contact.get('K') or float('nan')), '.3f')}.
+- Residual vs the air model \\(\\mathcal{{E}}_v\\): p95 = {fmt_finite(1e3 * float(ev.get('p95') or float('nan')), '.2f')} mm/s, max = {fmt_finite(1e3 * float(ev.get('max_abs') or float('nan')), '.2f')} mm/s. This set matters more than a single T0.
+- Contact pose offset from the start of that chirp: {fmt_finite(ax_c, '.2f')} mm (commanded Ax = {ax_mm:.2f} mm; this is not peak-to-peak). If it is near 4 mm the excitation is still too large.
+- 03 air T0 = {fmt_finite(1e3 * float(air_ref.get('T0_s') or float('nan')), '.1f')} ms. Do not read this as a force Bode.
 
-## 图
+## Figure
 
-`gv_compare.png`：空气 / 接触 |Gv|。
+`gv_compare.png`: air / contact \\(|G_v|\\).
 """,
     )
     print(
@@ -198,21 +202,66 @@ def _plot_07(channels: list[dict], visu: Path) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     add_contact_args(p, abort_n=3.50, contact_n=1.20)
-    p.add_argument("--ax-mm", type=float, default=0.40, help="commanded indentation amplitude")
+    p.add_argument("--ax-mm", type=float, default=0.40, help="air chirp amplitude")
+    p.add_argument(
+        "--contact-ax-mm",
+        type=float,
+        default=0.20,
+        help="contact chirp amplitude; must stay well below seated indentation",
+    )
+    p.add_argument(
+        "--seat-n",
+        type=float,
+        default=2.00,
+        help="unused; old 2 N slam unloaded the slope — kept so old flags do not fail",
+    )
+    p.add_argument(
+        "--seat-mm",
+        type=float,
+        default=0.80,
+        help="unused displacement seat; kept so old flags do not fail",
+    )
+    p.add_argument("--seat-s", type=float, default=1.60)
     p.add_argument("--f0", type=float, default=0.3)
     p.add_argument("--f1", type=float, default=8.0)
     p.add_argument("--chirp-s", type=float, default=25.0)
     p.add_argument("--ms-s", type=float, default=12.0)
     p.add_argument("--skip-air", action="store_true")
-    p.add_argument("--skip-ms", action="store_true")
+    p.add_argument("--skip-ms", action="store_true", help="ignored; contact multisine is off unless --do-ms")
+    p.add_argument(
+        "--do-ms",
+        action="store_true",
+        help="optional two-sided contact multisine after the one-sided chirp",
+    )
     p.add_argument("--unload-n", type=float, default=0.25)
+    p.add_argument(
+        "--kiss-n",
+        type=float,
+        default=0.40,
+        help="stop the fast approach here, then creep to --contact-n",
+    )
+    p.add_argument("--seek-mm-s", type=float, default=8.0, help="fast tool-Z approach until --kiss-n")
+    p.add_argument("--seek-s", type=float, default=5.0, help="max fast-approach time (travel cap is --seek-max-mm)")
+    p.add_argument(
+        "--seek-max-mm",
+        type=float,
+        default=25.0,
+        help="refuse a long skate: mid-stroke TCP must already be this close to the pad",
+    )
+    p.add_argument("--slow-mm-s", type=float, default=2.0, help="creep speed from kiss to --contact-n")
+    p.add_argument("--slow-s", type=float, default=4.0, help="max creep time after the kiss")
     args = p.parse_args()
     when = stamp()
     ax = args.ax_mm / 1000.0
+    ax_c = args.contact_ax_mm / 1000.0
     print(
-        f"[PLAN] MOVEJ mid, air disp-chirp Ax={args.ax_mm:.2f} mm "
-        f"{args.f0:.1f}–{args.f1:.1f} Hz, seek F≈{args.contact_n:.2f} N, "
-        f"same chirp in contact  force loop OFF  abort F≥{args.abort_n:.1f} N  "
+        f"[PLAN] MOVEJ mid (TCP must already be ≤{args.seek_max_mm:.0f} mm above the pad), "
+        f"air disp-chirp Ax={args.ax_mm:.2f} mm "
+        f"{args.f0:.1f}–{args.f1:.1f} Hz, then +Z {args.seek_mm_s:.1f} mm/s "
+        f"≤{args.seek_max_mm:.0f} mm until F≈{args.kiss_n:.2f} N, creep "
+        f"{args.slow_mm_s:.1f} mm/s to F≈{args.contact_n:.2f} N, "
+        f"one-sided contact Ax={args.contact_ax_mm:.2f} mm  "
+        f"secondary={args.secondary}  force loop OFF  abort F≥{args.abort_n:.1f} N  "
         "compare T0/Tp/K and Ev, not a force Bode",
         flush=True,
     )
@@ -220,7 +269,12 @@ def main() -> int:
         return 0
     if args.csv:
         try:
-            analyze(Path(args.csv), when=when, window_a_csv=args.window_a_csv, ax_mm=args.ax_mm)
+            analyze(
+                Path(args.csv),
+                when=when,
+                window_a_csv=args.window_a_csv,
+                ax_mm=args.contact_ax_mm,
+            )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)
             return 2
@@ -241,6 +295,7 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
+        secondary=args.secondary,
     )
     try:
         srv.start_twist()
@@ -249,14 +304,50 @@ def main() -> int:
                 return 0 if srv.aborted else 130
             if not srv.hold(0.0, 0.3, "rest"):
                 return 130
-        if not srv.seek_contact(0.006, contact_n=args.contact_n):
+        if not srv.seek_contact(
+            args.seek_mm_s / 1000.0,
+            contact_n=args.kiss_n,
+            seconds=args.seek_s,
+            phase="seek",
+            max_travel_m=args.seek_max_mm / 1000.0,
+        ):
             return 2
-        if not srv.seek_force(args.contact_n, vel_m_s=0.003, band_n=0.20, phase="preload"):
+        if math.isfinite(srv.last_fz) and srv.last_fz > args.contact_n:
+            print(
+                f"[KISS] Fz={srv.last_fz:.2f} N already ≥ {args.contact_n:.2f} N — skip creep",
+                flush=True,
+            )
+        elif not srv.seek_contact(
+            args.slow_mm_s / 1000.0,
+            contact_n=args.contact_n,
+            seconds=args.slow_s,
+            phase="seat",
+        ):
             return 2
-        if not srv.hold(0.0, 0.5, "preload"):
-            return 0 if srv.aborted else 130
+        if not (math.isfinite(srv.last_fz) and srv.last_fz >= 0.80 * args.contact_n):
+            print(
+                f"[ERR] Fz={srv.last_fz:.2f} N after approach — probe slid off. "
+                "Flatten the phantom or align tool-Z; not starting the contact chirp.",
+                flush=True,
+            )
+            srv.retract_z(0.008, 2.5, 0.30)
+            srv.tick(0.0, "done", check_abort=False)
+            return 2
+        print(
+            f"[CONTACT-CHIRP] one-sided Ax={args.contact_ax_mm:.2f} mm  "
+            f"x∈[0, {2.0 * args.contact_ax_mm:.2f}] mm from this pose  "
+            f"F={srv.last_fz:.2f} N",
+            flush=True,
+        )
         if not srv.chirp_disp_axis(
-            2, ax, args.f0, args.f1, args.chirp_s, "contact_chirp", min_n=args.unload_n
+            2,
+            ax_c,
+            args.f0,
+            args.f1,
+            args.chirp_s,
+            "contact_chirp",
+            min_n=args.unload_n,
+            onesided=True,
         ):
             if srv.unloaded:
                 print("[07] contact lost during chirp — still analyzing", flush=True)
@@ -264,11 +355,11 @@ def main() -> int:
                 pass
             else:
                 return 130
-        if not args.skip_ms:
+        if args.do_ms and not srv.unloaded:
             from id_math import disp_multisine
 
             v_ms, _ = disp_multisine(
-                srv.dt, args.ms_s, ax, (0.5, 1.1, 1.9, 3.1, 4.7), seed=7
+                srv.dt, args.ms_s, ax_c, (0.5, 1.1, 1.9, 3.1, 4.7), seed=7
             )
             seq = np.zeros((v_ms.size, 6), dtype=float)
             seq[:, 2] = v_ms
@@ -285,7 +376,7 @@ def main() -> int:
     try:
         stash_window_a(args.window_a_csv, data)
         if log.is_file() and srv.n_rows > 64:
-            analyze(log, when=when, window_a_csv=args.window_a_csv, ax_mm=args.ax_mm)
+            analyze(log, when=when, window_a_csv=args.window_a_csv, ax_mm=args.contact_ax_mm)
     except AlignmentError as exc:
         print(f"[ERR] {exc}", flush=True)
         return 2

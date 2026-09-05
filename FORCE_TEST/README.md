@@ -18,7 +18,7 @@ python FORCE_TEST/01_system_delay.py --dry-run
 | `04_timing_jitter.py` | feedback_age, dt_actual | plant T0 |
 | `05_tracking_error.py` | \|vel_ff − v_ach\| (Lee) | BEFM apply (no τ) |
 | `06_axis_gv.py` | Gv on X/Y/Z (Ma macro/mini) | force law |
-| `07_contact_gv.py` | air vs contact Gv under **bounded Ax ≈ 0.4 mm**; residual set Ev | force tracking, 5 mm/s @ 0.2 Hz chirp |
+| `07_contact_gv.py` | air vs contact Gv; rail **payload_id** (locked); one-sided contact 0.20 mm; Ev | force tracking; `secondary=track` 8DoF allocator in the ID plant |
 | `08_env_ke.py` | Ke envelope in F∈[2,5] N (aligned with `--target-n=5`); `ke_envelope.csv` | single-secant 527 N/m; claiming [2,6] N at a 5 N press |
 | `09_multisine_gv.py` | paper §II.A multisine FRF | position-loop experiment |
 | `10_tn_observe.py` | eq.(10) first term, observe only | Q/N1/N2 ID, CDYOB apply |

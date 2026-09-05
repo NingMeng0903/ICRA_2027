@@ -17,6 +17,8 @@ from window_a import (
     AlignmentError,
     alignment_report,
     merge_logs,
+    monotonic_time_segments,
+    pose6,
     tool_z_displacement,
 )
 
@@ -110,6 +112,86 @@ def test_alignment_and_ke() -> None:
     del rng
 
 
+def test_rewind_clock_uses_latest_segment() -> None:
+    """Window A t_wall_s restarts; do not mix an old mid-stroke into this take."""
+
+    n = 80
+    dt = 0.005
+    old = []
+    new = []
+    cmd_rows = []
+    for i in range(n):
+        t = dt * i
+        old.append(
+            {
+                "t_wall_s": f"{t:.6f}",
+                "dt_actual_s": "0.005",
+                "phase": "servo_twist",
+                "pose_x": "0.347",
+                "pose_y": "0.252",
+                "pose_z": "0.281",
+                "pose_rx": "0",
+                "pose_ry": "0",
+                "pose_rz": "0",
+                "fx": "0",
+                "fy": "0",
+                "fz": "0.1",
+                "tx": "0",
+                "ty": "0",
+                "tz": "0",
+                "twist_achieved_vz": "0.001",
+            }
+        )
+        new.append(
+            {
+                "t_wall_s": f"{t:.6f}",
+                "dt_actual_s": "0.005",
+                "phase": "servo_twist",
+                "pose_x": "0.198",
+                "pose_y": "0.244",
+                "pose_z": "0.261",
+                "pose_rx": "0",
+                "pose_ry": "0",
+                "pose_rz": "0",
+                "fx": "0",
+                "fy": "0",
+                "fz": "1.2",
+                "tx": "0",
+                "ty": "0",
+                "tz": "0",
+                "twist_achieved_vz": "0.001",
+            }
+        )
+        cmd_rows.append(
+            {
+                "t_wall_s": f"{t:.6f}",
+                "t_mono_s": f"{t:.6f}",
+                "dt_actual_s": "0.005",
+                "phase": "air_chirp",
+                "v_cmd_vz": "0.001",
+                "v_cmd_vx": "0",
+                "v_cmd_vy": "0",
+                "v_cmd_wx": "0",
+                "v_cmd_wy": "0",
+                "v_cmd_wz": "0",
+            }
+        )
+    wa_t = np.array([float(r["t_wall_s"]) for r in old + new])
+    segs = monotonic_time_segments(wa_t)
+    assert len(segs) == 2
+    with tempfile.TemporaryDirectory() as tmp:
+        root = Path(tmp)
+        cmd = _write(root / "cmd.csv", cmd_rows)
+        wa = _write(root / "wa.csv", old + new)
+        rows, report = merge_logs(cmd, wa)
+        assert report["aligned"], report
+        assert report["wa_clock_resets"] == 1
+        xyz = pose6(rows)
+        assert abs(float(np.median(xyz[:, 0])) - 0.198) < 1e-9
+        assert abs(float(np.max(xyz[:, 0]) - np.min(xyz[:, 0]))) < 1e-9
+    print("[OK] rewind clock uses latest Window A segment", flush=True)
+
+
 def test_dry_scripts() -> None:
     import subprocess
 
@@ -139,4 +221,5 @@ def test_dry_scripts() -> None:
 
 if __name__ == "__main__":
     test_alignment_and_ke()
+    test_rewind_clock_uses_latest_segment()
     test_dry_scripts()

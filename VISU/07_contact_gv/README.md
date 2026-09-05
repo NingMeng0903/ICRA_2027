@@ -1,9 +1,15 @@
-# 07_contact_gv — 限位移轻接触 Gv
+# 07_contact_gv — displacement-limited contact Gv
 
-本轮**还没采**。不要用旧默认 5 mm/s / 0.2 Hz（低频位移约 4 mm）。
+Take `20260905_145323` · filter OFF · force loop OFF · Window A median gap 2.3 ms · clock resets 2 (used latest SERVO slice)
 
-预载 F0≈1.2 N。空气和接触都用 \(x=A_x\sin\phi\)，\(A_x\approx0.4\) mm，0.3–8 Hz。输出 T0/Tp/K 对照，以及 \(\mathcal E_v=v_{\rm ach}-\hat G_v^{\rm air}u\)。力环关。需要 `--window-a-csv`。
+## Verdict
 
-```bash
-python FORCE_TEST/07_contact_gv.py --window-a-csv /path/to/window_a.csv --dry-run
-```
+- Air **T0 = 70.0 ms**, Tp = 14.0 ms, K = 0.584.
+- Contact **T0 = 10.0 ms**, Tp = 8.0 ms, K = 2.086.
+- Residual vs the air model \(\mathcal{E}_v\): p95 = 2.12 mm/s, max = 2.96 mm/s. This set matters more than a single T0.
+- Contact pose offset from the start of that chirp: 1.17 mm (commanded Ax = 0.20 mm; this is not peak-to-peak). If it is near 4 mm the excitation is still too large.
+- 03 air T0 = 28.0 ms. Do not read this as a force Bode.
+
+## Figure
+
+`gv_compare.png`: air / contact \(|G_v|\).

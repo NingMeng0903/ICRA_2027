@@ -61,6 +61,7 @@ class ContactLogger:
         abort_n: float | None = None,
         theta_axis: int = THETA_AXIS,
         scan_axis: int = SCAN_AXIS,
+        secondary: str = "payload_id",
     ) -> None:
         from peirastic.core.ipc import CommandClient, MotionBus, TwistBus
 
@@ -92,6 +93,8 @@ class ContactLogger:
         self.last_twist = np.zeros(6, dtype=float)
         self.aborted = False
         self.unloaded = False
+        self._below_min_from: float | None = None
+        self.secondary = str(secondary).strip() or "payload_id"
 
     def reset_proxy(self) -> None:
         """Zero the live tool-Z integral.  Call at each matched-state settle."""
@@ -101,10 +104,15 @@ class ContactLogger:
     def start_twist(self) -> None:
         from peirastic.core.modes import Mode, ModeRequest
 
-        self.client.set_mode(ModeRequest(Mode.SERVO_TWIST, {"filter": False}))
+        self.client.set_mode(
+            ModeRequest(
+                Mode.SERVO_TWIST,
+                {"filter": False, "secondary": self.secondary},
+            )
+        )
         print(
-            f"[MODE] SERVO_TWIST  filter OFF  6-D cmd  force loop OFF  "
-            f"log={self.log_csv}",
+            f"[MODE] SERVO_TWIST  filter OFF  secondary={self.secondary}  "
+            f"6-D cmd  force loop OFF  log={self.log_csv}",
             flush=True,
         )
 
@@ -174,14 +182,20 @@ class ContactLogger:
             self.aborted = True
             print(f"[ABORT] Fz={fz:.2f} N ≥ {self.abort_n:.1f} N", flush=True)
             return False
-        if (
-            min_n is not None
-            and math.isfinite(fz)
-            and fz < float(min_n)
-        ):
-            self.unloaded = True
-            print(f"[UNLOAD] Fz={fz:.2f} N < {float(min_n):.2f} N", flush=True)
-            return False
+        if min_n is not None:
+            if math.isfinite(fz) and fz < float(min_n):
+                now = time.monotonic()
+                if self._below_min_from is None:
+                    self._below_min_from = now
+                elif now - self._below_min_from >= 0.25:
+                    self.unloaded = True
+                    print(
+                        f"[UNLOAD] Fz={fz:.2f} N < {float(min_n):.2f} N for 0.25s",
+                        flush=True,
+                    )
+                    return False
+            else:
+                self._below_min_from = None
         return True
 
     def hold(
@@ -259,16 +273,22 @@ class ContactLogger:
         phase: str,
         *,
         min_n: float | None = None,
+        onesided: bool = False,
     ) -> bool:
-        """Displacement-limited chirp: x = Ax sin φ, so low-f does not walk millimetres."""
+        """Displacement-limited chirp.  onesided keeps x ≥ the start pose."""
 
+        self._below_min_from = None
         t0 = time.monotonic()
         T = float(seconds)
         while True:
             t = time.monotonic() - t0
             if t >= T:
                 break
-            vel = float(disp_chirp_velocity(np.asarray([t]), ax, f0, f1, T)[0])
+            vel = float(
+                disp_chirp_velocity(
+                    np.asarray([t]), ax, f0, f1, T, onesided=onesided
+                )[0]
+            )
             if not self.tick(axis_twist(axis, vel), phase, min_n=min_n):
                 return False
             time.sleep(self.dt)
@@ -295,18 +315,62 @@ class ContactLogger:
         vel_m_s: float,
         *,
         contact_n: float,
-        seconds: float = 12.0,
+        seconds: float = 25.0,
         phase: str = "seek",
+        max_travel_m: float | None = None,
     ) -> bool:
+        """Press +tool-Z until Fz exceeds contact_n, or time/travel runs out."""
+
         t0 = time.monotonic()
+        travel = 0.0
+        last_report = t0
+        vel = float(vel_m_s)
+        cap = None if max_travel_m is None else abs(float(max_travel_m))
+        cap_txt = f"{1e3 * cap:.0f} mm cap" if cap is not None else (
+            f"{1e3 * abs(vel) * float(seconds):.0f} mm by time"
+        )
+        print(
+            f"[SEEK] +tool-Z  {1e3 * vel:.1f} mm/s  up to {seconds:.1f} s "
+            f"({cap_txt})  until Fz>{contact_n:.2f} N",
+            flush=True,
+        )
         while time.monotonic() - t0 < float(seconds):
-            if not self.tick(axis_twist(2, float(vel_m_s)), phase):
+            if cap is not None and travel >= cap:
+                break
+            if not self.tick(axis_twist(2, vel), phase):
                 return False
+            travel += abs(vel) * self.dt
+            now = time.monotonic()
+            if now - last_report >= 1.0:
+                fz = self.last_fz
+                fz_txt = f"{fz:.2f} N" if math.isfinite(fz) else "nan"
+                print(
+                    f"[SEEK] t={now - t0:.1f}s  travel={1e3 * travel:.1f} mm  "
+                    f"Fz={fz_txt}  need>{contact_n:.2f} N",
+                    flush=True,
+                )
+                last_report = now
             if math.isfinite(self.last_fz) and self.last_fz > float(contact_n):
-                print(f"[CONTACT] Fz={self.last_fz:.2f} N", flush=True)
+                print(
+                    f"[CONTACT] Fz={self.last_fz:.2f} N  after {now - t0:.1f}s  "
+                    f"travel={1e3 * travel:.1f} mm",
+                    flush=True,
+                )
                 return True
             time.sleep(self.dt)
-        print("[ERR] no contact", flush=True)
+        fz = self.last_fz
+        fz_txt = f"{fz:.2f} N" if math.isfinite(fz) else "nan (no force snapshot)"
+        print(
+            f"[ERR] no contact after {seconds:.1f}s  commanded travel={1e3 * travel:.1f} mm  "
+            f"last Fz={fz_txt}  threshold={contact_n:.2f} N"
+            + (
+                f"  — stop, do not skate further. Raise the phantom so mid-stroke "
+                f"TCP is 10–25 mm above the pad."
+                if cap is not None
+                else ""
+            ),
+            flush=True,
+        )
         return False
 
     def hold_quiet(

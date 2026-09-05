@@ -84,6 +84,56 @@ def require_window_a(
     return path
 
 
+def monotonic_time_segments(t: np.ndarray, *, rewind_s: float = 0.25) -> list[tuple[int, int]]:
+    """Split a log where t_wall_s restarts at 0 on every MOVEJ / SERVO mode.
+
+    Window A writes phase-relative t_wall_s.  One --log-csv therefore contains
+    several overlapping [0, T] clocks.  Nearest-neighbour on the whole file
+    mixes an old mid-stroke pose into a later take and looks like a 15 cm jump.
+    """
+
+    t = np.asarray(t, dtype=float).reshape(-1)
+    cuts = [0]
+    if t.size >= 2:
+        dt = np.diff(t)
+        for i in np.flatnonzero(np.isfinite(dt) & (dt < -float(rewind_s))):
+            cuts.append(int(i) + 1)
+    cuts.append(int(t.size))
+    return [(a, b) for a, b in zip(cuts[:-1], cuts[1:]) if b > a]
+
+
+def _pick_time_segment(wa_t: np.ndarray, cmd_t: np.ndarray) -> tuple[slice, dict]:
+    """Use the later rewind-free slice that actually aligns with the command log."""
+
+    cmd_t = np.asarray(cmd_t, dtype=float)
+    cmd_t = cmd_t[np.isfinite(cmd_t)]
+    segs = monotonic_time_segments(wa_t)
+    ranked: list[tuple[float, int, slice, dict]] = []
+    for i, (a, b) in enumerate(segs):
+        if b - a < 16:
+            continue
+        sl = slice(a, b)
+        report = alignment_report(cmd_t, wa_t[sl])
+        if not report["aligned"]:
+            continue
+        ranked.append((float(report["gap_median_ms"]), i, sl, report))
+    if not ranked:
+        raise AlignmentError(
+            "Window A t_wall_s restarts on every mode change; no single "
+            "segment lines up with the command log. Restart Window A --log-csv "
+            "for this take, or pass a CSV that covers only this SERVO_TWIST."
+        )
+    # The current take is the last SERVO slice.  An older long slice can
+    # have a slightly tighter gap and still be the wrong experiment.
+    ranked.sort(key=lambda item: (-item[1], item[0]))
+    _gap, idx, sl, report = ranked[0]
+    report["wa_segments"] = len(segs)
+    report["wa_segment_index"] = idx
+    report["wa_segment_rows"] = int(sl.stop - sl.start)
+    report["wa_clock_resets"] = max(len(segs) - 1, 0)
+    return sl, report
+
+
 def _nearest_indices(src: np.ndarray, query: np.ndarray) -> np.ndarray:
     order = np.argsort(src, kind="stable")
     s = src[order]
@@ -138,16 +188,14 @@ def merge_logs(cmd_path: Path, window_a_path: Path) -> tuple[list[dict], dict]:
         raise AlignmentError(
             f"{cmd_path} or {window_a_path} has too few finite timestamps"
         )
-    report = alignment_report(cmd_t[finite_c], wa_t[finite_w])
-    if not report["aligned"]:
-        raise AlignmentError(
-            f"cannot rebuild the sent queue: {report['reason']} "
-            f"(median {report['gap_median_ms']:.1f} ms)"
-        )
-    wa_idx_all = _nearest_indices(wa_t, cmd_t)
+    sl, report = _pick_time_segment(wa_t[finite_w], cmd_t[finite_c])
+    # finite_w may drop rows; map slice back onto the original WA rows.
+    wa_keep = np.flatnonzero(finite_w)[sl]
+    wa_t_use = wa_t[wa_keep]
+    wa_idx_all = wa_keep[_nearest_indices(wa_t_use, cmd_t)]
     merged: list[dict] = []
     for i, cmd in enumerate(cmd_rows):
-        row = dict(wa_rows[int(wa_idx_all[i])])
+        row = dict(wa_rows[int(wa_idx_all[i])])  # original-row index
         row["phase"] = str(cmd.get("phase") or row.get("phase") or "")
         for letter in TWIST_LETTERS:
             key = f"v_cmd_{letter}"
@@ -170,7 +218,11 @@ def has_torque(rows: list[dict]) -> bool:
 
 
 def pose6(rows: list[dict]) -> np.ndarray:
-    out = np.column_stack([col(rows, key, meas) for key, meas in zip(POSE_KEYS, POSE_MEAS_KEYS)])
+    """Measured TCP if present; pose_* is often a copy of pose_meas_*."""
+
+    out = np.column_stack(
+        [col(rows, meas, key) for key, meas in zip(POSE_KEYS, POSE_MEAS_KEYS)]
+    )
     return out
 
 

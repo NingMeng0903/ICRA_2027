@@ -1,0 +1,68 @@
+{
+  "csv": "/media/camp/EXT_DRIVE/ICRA_2027/DATA/07_contact_gv/contact_gv.csv",
+  "align": {
+    "n_cmd": 7717,
+    "n_window_a": 9023,
+    "n_matched": 7717,
+    "gap_median_ms": 2.3079999999993106,
+    "gap_p95_ms": 2.3080000000028633,
+    "gap_max_ms": 2.323000000000519,
+    "aligned": true,
+    "wa_segments": 3,
+    "wa_segment_index": 2,
+    "wa_segment_rows": 9023,
+    "wa_clock_resets": 2,
+    "torque_present": true,
+    "cmd_csv": "/media/camp/EXT_DRIVE/ICRA_2027/DATA/07_contact_gv/contact_gv.csv",
+    "window_a_csv": "/tmp/wa_073.csv"
+  },
+  "ax_mm": 0.2,
+  "air": {
+    "T0_s": 0.07,
+    "Tp_s": 0.014000000000000002,
+    "K": 0.583872759781082,
+    "n": 4847,
+    "rmse": 0.006052150535605269,
+    "tube": {
+      "n": 4847,
+      "p95": 0.013323931141741789,
+      "max_abs": 0.022191118298586634,
+      "bar": 0.022191118298586634,
+      "slack": 0.0
+    }
+  },
+  "contact": {
+    "T0_s": 0.01,
+    "Tp_s": 0.008,
+    "K": 2.0862149011156,
+    "n": 272,
+    "rmse": 0.0013734076202507027,
+    "tube": {
+      "n": 272,
+      "p95": 0.0025002116328188737,
+      "max_abs": 0.0036174597422972137,
+      "bar": 0.0036174597422972137,
+      "slack": 0.0
+    }
+  },
+  "Ev_contact_vs_air_model": {
+    "n": 272,
+    "p95": 0.0021232063363133247,
+    "max_abs": 0.0029597509337111316,
+    "bar": 0.0029597509337111316,
+    "slack": 0.0
+  },
+  "pose_amp_mm": {
+    "air": {
+      "peak_mm": 1.8313073372012711,
+      "p95_mm": 0.9023051156487438
+    },
+    "contact": {
+      "peak_mm": 1.1719165671325165,
+      "p95_mm": 0.6831828006283707
+    }
+  },
+  "air_03_T0_s": 0.028,
+  "collected_at": "20260905_145323",
+  "what": "contact vs air Gv under bounded indentation, not a force loop"
+}
