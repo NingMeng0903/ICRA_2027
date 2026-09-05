@@ -121,6 +121,7 @@ def test_dry_scripts() -> None:
         "12_stop_tail.py",
         "13_contact_hs.py",
         "14_port_energy.py",
+        "15_holdout.py",
     ]
     for name in scripts:
         proc = subprocess.run(
@@ -133,7 +134,7 @@ def test_dry_scripts() -> None:
             raise SystemExit(f"{name} dry-run failed:\n{proc.stdout}\n{proc.stderr}")
         if "[DRY]" not in proc.stdout:
             raise SystemExit(f"{name} dry-run printed no [DRY]")
-    print("[OK] dry-run 07/08/11–14", flush=True)
+    print("[OK] dry-run 07/08/11–15", flush=True)
 
 
 if __name__ == "__main__":

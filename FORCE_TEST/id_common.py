@@ -1,11 +1,12 @@
-"""Shared collect / analyze glue for 08 and 11–14."""
+"""Shared collect / analyze glue for 07–15."""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 from goto_mid import add_movej_args
-from paths import kind_dirs
+from id_math import read_json
+from paths import DATA, kind_dirs
 from window_a import (
     AlignmentError,
     add_window_a_arg,
@@ -48,3 +49,36 @@ def stash_window_a(window_a_csv: str | Path | None, data_dir: Path) -> Path:
 def open_kind(kind: str, cmd_csv: Path | None = None) -> tuple[Path, Path]:
     preserve = cmd_csv if cmd_csv is not None and Path(cmd_csv).is_file() else None
     return kind_dirs(kind, preserve=preserve)
+
+
+KIND_JSON = {
+    "08_ke": "ke.json",
+    "11_exec_2dof": "exec.json",
+    "12_stop_tail": "tail.json",
+    "13_contact_hs": "hs.json",
+    "14_port_energy": "energy.json",
+}
+
+
+def find_kind_json(kind: str, filename: str | None = None, *, root: Path | None = None) -> Path | None:
+    folder = (root or DATA) / kind
+    path = folder / (filename or KIND_JSON.get(kind, "out.json"))
+    return path if path.is_file() else None
+
+
+def load_kind_json(kind: str, filename: str | None = None, *, root: Path | None = None) -> dict | None:
+    path = find_kind_json(kind, filename, root=root)
+    if path is None:
+        return None
+    try:
+        payload = read_json(path)
+    except (OSError, ValueError):
+        return None
+    payload["_path"] = str(path)
+    return payload
+
+
+def load_id_bundle(*, root: Path | None = None) -> dict[str, dict | None]:
+    """Read 08/11–14 payloads.  Missing files stay None — 15 must not fit them."""
+
+    return {kind: load_kind_json(kind, root=root) for kind in KIND_JSON}

@@ -80,6 +80,14 @@ Source: `DATA/03_chirp/chirp.csv` observed with T0=28 ms, Tp=14 ms, K=0.96. No n
 
 Command, achieved velocity, and the FOPDT prediction. The lower trace is what is left after the delay model; it stays small across the chirp.
 
+## 07 — contact Gv under bounded indentation
+
+Source: `DATA/07_contact_gv/contact_gv.csv` + `window_a.csv`. Excitation is \(x=A_x\sin\phi\) with \(A_x\approx0.4\) mm, not a 5 mm/s / 0.2 Hz velocity chirp.
+
+### `07_contact_gv/gv_compare`
+
+Air and contact \(|G_v|\). The residual set \(\mathcal E_v=v_{\rm ach}-\hat G_v^{\rm air}u\) lives in `gv.json`.
+
 ## 08 — environment stiffness
 
 Source: `DATA/08_ke/press.csv` merged with `window_a.csv`. Δx is TCP pose along the first-press tool-Z axis. Command integration is not Ke.
@@ -89,30 +97,38 @@ Source: `DATA/08_ke/press.csv` merged with `window_a.csv`. Δx is TCP pose along
 - **a** — Fz.
 - **b** — tool-Z travel from pose. The shade is the press interval used for ΔF/Δx.
 
-## 11 — two feedback DoFs
+### `08_ke/ke_envelope`
 
-Source: `DATA/11_exec_2dof/exec.csv` + `window_a.csv`.
+Local \(K_e(F)\) on loading. The shade is the work band [2, 6] N. The paper number is \(\overline K_e\), not the secant.
+
+## 11 — 2×2 execution contract
+
+Source: `DATA/11_exec_2dof/exec.csv` + `window_a.csv`. Joint lines do not overlap.
 
 ### `11_exec_2dof/exec_bode`
 
-|G| for the channels that were actually collected (air / preload, uz and ωθ). A small ωθ→vz magnitude in 0.3–3 Hz means the diagonal model is enough.
+Four panels: \(G_{zz},G_{z\theta},G_{\theta z},G_{\theta\theta}\).
 
-## 12 — stop tail
+### `11_exec_2dof/exec_tube`
 
-Source: `DATA/12_stop_tail/tail.csv` + `window_a.csv`.
+Time-domain residual of \(\hat G u\) versus achieved \((v_z,\omega_\theta)\). The tube is max\(|e|\)+slack.
+
+## 12 — matched-state stop tail
+
+Source: `DATA/12_stop_tail/tail.csv` + `window_a.csv`. Only pairs that match \((F,x,v,u)\) on Window A and differ in the previous 50–100 ms count.
 
 ### `12_stop_tail/stop_tail`
 
-- **a** — Fz. Vertical lines are stop edges.
-- **b** — tool-Z travel after those edges. A late rise after a zero command is committed motion.
+- **a** — Fz after \(t_0\), A solid / B dashed.
+- **b** — tool-Z after \(t_0\). Different tails at the same state are committed queue.
 
 ## 13 — scan-induced force
 
-Source: `DATA/13_contact_hs/hs.csv` + `window_a.csv`.
+Source: `DATA/13_contact_hs/hs.csv` + `window_a.csv`. Scans carry independent \(\delta v_z,\delta\omega_\theta\).
 
 ### `13_contact_hs/hs_scan`
 
-Fz against path travel. One trace is the flat scan, one is the known slope. If they coincide, Hs is not identified.
+Fz against path travel. One trace is the flat scan, one is the known wedge. If they coincide, Hs is not identified.
 
 ## 14 — port power
 
@@ -120,10 +136,18 @@ Source: `DATA/14_port_energy/energy.csv` + `window_a.csv`.
 
 ### `14_port_energy/port_power`
 
-Same-tick command power, achieved-twist power, pose-increment power, and the conservative bound. A press-then-retract pass goes negative then recovers; the prefix debt is the running max of the negative integral.
+Command, achieved-twist, SO(3) pose-twist, and the 11-contract lower bound.
 
-## Later scripts
+### `14_port_energy/prefix_debt`
 
-Same rules. Caption goes in this file when the figure is added. Folder name matches the script kind.
+\(D_{\rm true}(k)\) against \(D_{\rm bound}(k)\). Coverage is ∀k, not a comparison of two maxima.
 
-Uncollected 07/08/11–14 may keep a purpose stub in `VISU/<kind>/README.md`. After a collect that file must hold numbers and a verdict. If 08 hard-pad Ke and 12 tails stay far below 1 N, C1 is academically true and experimentally slack. If 12 does not split two queues at the same (F, v), drop the delay-augmented state. If 13 cannot separate Hs, drop ρ as a theory core. If 14 fails coverage, the paper has no passivity claim.
+## 15 — hold-out
+
+Source: `DATA/15_holdout/holdout.csv` + `window_a.csv`. Uses 08/11–14 JSON only.
+
+### `15_holdout/holdout_cover`
+
+Per-check coverage. This file must not contain a newly fitted \(G\), \(K_e\), \(H\), or \(\bar w\).
+
+Uncollected 07/08/11–15 may keep a purpose stub in `VISU/<kind>/README.md`. After a collect that file must hold numbers and a verdict. If 08 hard-pad \(\overline K_e\) and 12 tails stay far below 1 N, C1 is academically true and experimentally slack. If 12 does not split two queues at a Window-A-matched state, drop the delay-augmented state. If 13 cannot reach rank 3, drop ρ as a theory core. If 14 fails ∀k coverage, the paper has no passivity claim. If 15 coverage is poor, do not write “certified envelope”.

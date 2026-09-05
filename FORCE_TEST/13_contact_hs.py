@@ -1,18 +1,21 @@
 #!/usr/bin/env python3
-"""Force–moment–scan coupling Hs.  Force loop OFF.
+"""Force–moment–scan coupling H.  Force loop OFF.
 
-What: quasi-static z/tilt, hold (relaxation), flat vs known-slope scans
-      at more than one ρ, both directions, then a small tilt-sign probe.
-Why: C2 needs a physical Hs ρ term.  If ρ and uz stay collinear the
-      regression is rank-deficient.  90° is not a preset law.
+What: quasi-static z/tilt, hold, then scans with *independent* small
+      δvz, δωθ on top of ρ (disjoint frequencies), flat and known wedge,
+      plus ±tilt for sign.  --alpha-deg is the known attack angle of
+      this take and is written to DATA/hs_alphas.csv.
+Why: a scan with vz≃0, ωθ≃0, ρ≠0 cannot identify [Hz, Hθ, Hs].
+     One slope_deg as metadata cannot calibrate α.
 
-Torque columns need the playground Window A patch (tx, ty, tz).
-Without them the moment half degrades and the JSON says so.
+Sign identification is enough for qualitative tilt correction.
+An angle estimator needs the α = −10…+10° matrix across takes.
 """
 
 from __future__ import annotations
 
 import argparse
+import csv
 import math
 import sys
 from pathlib import Path
@@ -24,9 +27,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from contact_log import ContactLogger, axis_twist
 from goto_mid import go_mid_from_args
 from id_common import add_contact_args, load_aligned, stash_window_a
+from id_math import dump_jsonable, scan_perturb_twists
 from io_csv import col, write_json
-from paper_fig import ACH, MINUS, mpl, panel_tag, save
-from paths import add_playground, dry_exit, kind_dirs, stamp, write_readme
+from paper_fig import ACH, MINUS, mpl, save
+from paths import DATA, add_playground, dry_exit, kind_dirs, stamp, write_readme
 from window_a import (
     AlignmentError,
     fmt_finite,
@@ -36,10 +40,25 @@ from window_a import (
     pose6,
     tool_z_displacement,
     twist_ach6,
+    twist_cmd6,
     wrench6,
 )
 
 KIND = "13_contact_hs"
+ALPHA_CSV = DATA / "hs_alphas.csv"
+ALPHA_FIELDS = (
+    "collected_at",
+    "alpha_deg",
+    "site",
+    "F_mean_n",
+    "tau_mean_nm",
+    "df_ds_n_m",
+    "Hz",
+    "Hth",
+    "Hs",
+    "reg_rank",
+    "tilt_sign_opposite",
+)
 
 
 def _finite_xy(x: np.ndarray, y: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -72,24 +91,63 @@ def _mean_rate(t: np.ndarray, y: np.ndarray, mask: np.ndarray) -> float:
     return float((yy[m][-1] - yy[m][0]) / dt)
 
 
+def _fit_H(vz, wth, rho, df) -> dict:
+    X = np.column_stack([vz, wth, rho])
+    y = np.asarray(df, dtype=float)
+    ok = np.isfinite(X).all(axis=1) & np.isfinite(y)
+    n = int(np.count_nonzero(ok))
+    if n < 24:
+        return {"n": n, "rank": 0, "cond": float("nan"), "Hz": float("nan"), "Hth": float("nan"), "Hs": float("nan")}
+    Xo, yo = X[ok], y[ok]
+    rank = int(np.linalg.matrix_rank(Xo, tol=1e-6))
+    cond = float(np.linalg.cond(Xo)) if rank >= 1 else float("nan")
+    coef, *_ = np.linalg.lstsq(Xo, yo, rcond=None)
+    return {
+        "n": n,
+        "rank": rank,
+        "cond": cond,
+        "Hz": float(coef[0]),
+        "Hth": float(coef[1]),
+        "Hs": float(coef[2]),
+    }
+
+
+def append_alpha_row(row: dict) -> Path:
+    DATA.mkdir(parents=True, exist_ok=True)
+    fresh = not ALPHA_CSV.is_file()
+    with ALPHA_CSV.open("a", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(ALPHA_FIELDS))
+        if fresh:
+            writer.writeheader()
+        writer.writerow({key: row.get(key, "") for key in ALPHA_FIELDS})
+    print(f"[ALPHA] α={row.get('alpha_deg')}  {ALPHA_CSV}", flush=True)
+    return ALPHA_CSV
+
+
 def analyze(
     csv_path: Path,
     *,
     when: str,
     window_a_csv: str = "",
+    alpha_deg: float | None = None,
     slope_deg: float | None = None,
     scan_axis: int = 0,
+    theta_axis: int = 4,
+    site: str = "",
 ) -> dict:
     rows, align = load_aligned(Path(csv_path), window_a_csv or None)
     t = col(rows, "t_wall_s", "t_mono_s")
     pose = pose6(rows)
     wrench = wrench6(rows)
     ach = twist_ach6(rows)
+    cmd = twist_cmd6(rows)
     dx_z = tool_z_displacement(pose)
     ds = integrate_along_axis(pose, scan_axis)
     fz = wrench[:, 2]
     tau = wrench[:, 4]
     torque_ok = has_torque(rows)
+    if alpha_deg is None or not math.isfinite(float(alpha_deg)):
+        alpha_deg = slope_deg
     quasi_z = _slope(dx_z[phase_mask(rows, "quasi_z")], fz[phase_mask(rows, "quasi_z")])
     quasi_th = _slope(
         col(rows, "pose_ry", "pose_meas_ry")[phase_mask(rows, "quasi_th")],
@@ -98,7 +156,14 @@ def analyze(
     hold_press = _mean_rate(t, fz, phase_mask(rows, "hold_press"))
     hold_unload = _mean_rate(t, fz, phase_mask(rows, "hold_unload"))
     scans = {}
-    for name in ("scan_flat_slow", "scan_flat_fast", "scan_slope_slow", "scan_slope_fast", "scan_rev"):
+    for name in (
+        "scan_flat_ref",
+        "scan_flat_slow",
+        "scan_flat_fast",
+        "scan_slope_slow",
+        "scan_slope_fast",
+        "scan_rev",
+    ):
         mask = phase_mask(rows, name)
         scans[name] = {
             "df_ds": _slope(ds[mask], fz[mask]),
@@ -108,23 +173,27 @@ def analyze(
     hs_flat = float(scans["scan_flat_fast"]["df_ds"].get("slope") or float("nan"))
     hs_slope = float(scans["scan_slope_fast"]["df_ds"].get("slope") or float("nan"))
     hs_identifiable = (
-        math.isfinite(hs_flat)
-        and math.isfinite(hs_slope)
-        and abs(hs_slope - hs_flat) > 20.0
+        math.isfinite(hs_flat) and math.isfinite(hs_slope) and abs(hs_slope - hs_flat) > 20.0
     )
     tilt_up = _mean_rate(t, fz, phase_mask(rows, "tilt_up"))
     tilt_dn = _mean_rate(t, fz, phase_mask(rows, "tilt_dn"))
     sign_ok = math.isfinite(tilt_up) and math.isfinite(tilt_dn) and (tilt_up * tilt_dn) < 0.0
-    # Rank of [vz, ωθ, ρ] vs df on slope+flat scans.
-    mask_reg = phase_mask(rows, "scan_flat_fast", "scan_slope_fast", "scan_rev")
+    mask_reg = phase_mask(
+        rows, "scan_flat_slow", "scan_flat_fast", "scan_slope_slow", "scan_slope_fast", "scan_rev"
+    )
     dt = np.diff(t, prepend=t[0])
     dt = np.where(np.isfinite(dt) & (dt > 1e-4), dt, 0.005)
     df = np.diff(fz, prepend=fz[0]) / dt
-    X = np.column_stack([ach[:, 2], ach[:, 4], ach[:, scan_axis]])[mask_reg]
-    y = df[mask_reg]
-    ok = np.isfinite(X).all(axis=1) & np.isfinite(y)
-    rank = int(np.linalg.matrix_rank(X[ok], tol=1e-6)) if int(np.count_nonzero(ok)) > 12 else 0
-    cond = float(np.linalg.cond(X[ok])) if rank >= 2 else float("nan")
+    # Prefer achieved motion; fall back to command if Window A ωθ is empty.
+    vz = ach[:, 2]
+    wth = ach[:, int(theta_axis)]
+    if not np.isfinite(wth[mask_reg]).any():
+        wth = cmd[:, int(theta_axis)]
+    rho = ach[:, int(scan_axis)]
+    H = _fit_H(vz[mask_reg], wth[mask_reg], rho[mask_reg], df[mask_reg])
+    rank_ok = int(H.get("rank") or 0) >= 3
+    F_mean = float(np.nanmean(fz[mask_reg])) if np.any(mask_reg) else float("nan")
+    tau_mean = float(np.nanmean(tau[mask_reg])) if np.any(mask_reg) else float("nan")
     payload = {
         "csv": str(csv_path),
         "align": align,
@@ -138,45 +207,77 @@ def analyze(
         "Hs_flat_n_m": hs_flat,
         "Hs_slope_n_m": hs_slope,
         "Hs_identifiable": bool(hs_identifiable),
+        "H": H,
+        "Hz": H.get("Hz"),
+        "Hth": H.get("Hth"),
+        "Hs": H.get("Hs"),
+        "reg_rank": H.get("rank"),
+        "reg_cond": H.get("cond"),
+        "rank3": bool(rank_ok),
         "tilt_up_dfdt": tilt_up,
         "tilt_dn_dfdt": tilt_dn,
         "tilt_sign_opposite": bool(sign_ok),
-        "reg_rank": rank,
-        "reg_cond": cond,
+        "alpha_deg": alpha_deg,
         "slope_deg": slope_deg,
+        "features": {"F_mean_n": F_mean, "tau_mean_nm": tau_mean, "df_ds_n_m": hs_slope},
         "scan_axis": scan_axis,
+        "theta_axis": theta_axis,
+        "site": site,
         "collected_at": when,
-        "what": "contact Hs / tilt sign, not a 90-deg bounce law",
+        "what": "Hη, Hs from independent perturbations; not a 90-deg bounce law",
     }
     data, visu = kind_dirs(KIND, preserve=csv_path)
-    write_json(data / "hs.json", payload)
+    write_json(data / "hs.json", dump_jsonable(payload))
     _plot_13(ds, fz, phase_mask(rows, "scan_flat_fast"), phase_mask(rows, "scan_slope_fast"), visu)
+    if rank_ok:
+        h_note = (
+            f"回归秩 3，H = [{fmt_finite(H.get('Hz'), '.1f')}, "
+            f"{fmt_finite(H.get('Hth'), '.1f')}, {fmt_finite(H.get('Hs'), '.1f')}]。"
+        )
+    else:
+        h_note = f"回归秩 {H.get('rank')}（条件数 {fmt_finite(H.get('cond'), '.1f')}）。还不能把完整 H 写进 QP。"
     hs_note = (
-        "坠角与平面的 df/ds 能分开，Hsρ 可以进调速。"
+        "坠角与平面的 df/ds 能分开。"
         if hs_identifiable
-        else "Hs 几乎看不出来：ρ 先当保守扰动包络，不能当理论核心。"
+        else "平面/坠角 df/ds 分不开：Hs 先当扰动包络。"
     )
     write_readme(
         visu,
         f"""# 13_contact_hs — 力–力矩–扫描耦合
 
-采集：`{when}` · filter OFF · 力环关 · 力矩列 {'在' if torque_ok else '**缺失**（旧 Window A 或未打补丁）'}
+采集：`{when}` · filter OFF · 力环关 · 已知 α = {fmt_finite(float(alpha_deg) if alpha_deg is not None else float('nan'), '.1f')}° · 力矩列 {'在' if torque_ok else '**缺失**'}
 
 ## 结论
 
-- 准静态 Ke ≈ {fmt_finite(quasi_z.get('slope'), '.1f')} N/m（R² {fmt_finite(quasi_z.get('r2'), '.2f')}），位移是实际 pose。
-- 平面 df/ds ≈ {fmt_finite(hs_flat, '.1f')} N/m，坠角 ≈ {fmt_finite(hs_slope, '.1f')} N/m。{hs_note}
-- 回归矩阵秩 {rank}，条件数 {fmt_finite(cond, '.1f')}。秩 < 2 时 uz 与 ρ 共线，模型不可辨。
+- 准静态 Ke ≈ {fmt_finite(quasi_z.get('slope'), '.1f')} N/m。
+- {h_note} {hs_note}
 - 倾角增大/减小的 df/dt 符号{('相反，可做定性调节。' if sign_ok else '没有可靠反号，不要写硬攻角约束。')}
-- 不要把 90° 写成物理定律。阈值从这些符号和已知楔角出。
+- 特征 (F̄, τ̄, df/ds) = ({fmt_finite(F_mean, '.2f')}, {fmt_finite(tau_mean, '.3f')}, {fmt_finite(hs_slope, '.1f')})。
+  粗 α 映射要 −10/−5/0/+5/+10° 各一拍，见 `{ALPHA_CSV.name}`。
+- 不要把 90° 写成物理定律。
 
 ## 图
 
 `hs_scan.png`：平面 vs 坠角扫描的 Fz 对路径弧长。
 """,
     )
+    append_alpha_row(
+        {
+            "collected_at": when,
+            "alpha_deg": "" if alpha_deg is None or not math.isfinite(float(alpha_deg)) else f"{float(alpha_deg):.2f}",
+            "site": site,
+            "F_mean_n": f"{F_mean:.3f}" if math.isfinite(F_mean) else "",
+            "tau_mean_nm": f"{tau_mean:.4f}" if math.isfinite(tau_mean) else "",
+            "df_ds_n_m": f"{hs_slope:.3f}" if math.isfinite(hs_slope) else "",
+            "Hz": f"{float(H.get('Hz') or float('nan')):.4f}" if math.isfinite(float(H.get("Hz") or float("nan"))) else "",
+            "Hth": f"{float(H.get('Hth') or float('nan')):.4f}" if math.isfinite(float(H.get("Hth") or float("nan"))) else "",
+            "Hs": f"{float(H.get('Hs') or float('nan')):.4f}" if math.isfinite(float(H.get("Hs") or float("nan"))) else "",
+            "reg_rank": str(H.get("rank") or 0),
+            "tilt_sign_opposite": "1" if sign_ok else "0",
+        }
+    )
     print(
-        f"[13] Ke={quasi_z.get('slope')}  Hs_id={hs_identifiable}  rank={rank}  data={data}",
+        f"[13] rank={H.get('rank')}  Hs_id={hs_identifiable}  α={alpha_deg}  data={data}",
         flush=True,
     )
     return payload
@@ -199,18 +300,22 @@ def _plot_13(ds, fz, flat, slope, visu: Path) -> None:
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     add_contact_args(p, abort_n=5.50, contact_n=0.40)
-    p.add_argument("--slope-deg", type=float, default=float("nan"), help="known wedge angle, for the log only")
+    p.add_argument("--alpha-deg", type=float, default=float("nan"), help="known wedge / attack angle of this take")
+    p.add_argument("--slope-deg", type=float, default=float("nan"), help="alias of --alpha-deg")
+    p.add_argument("--site", default="")
     p.add_argument("--scan-mm-s", type=float, default=8.0)
     p.add_argument("--scan-fast-mm-s", type=float, default=16.0)
-    p.add_argument("--scan-s", type=float, default=1.2)
+    p.add_argument("--scan-s", type=float, default=2.0)
+    p.add_argument("--dvz-mm-s", type=float, default=1.5)
+    p.add_argument("--dth-deg-s", type=float, default=3.0)
     p.add_argument("--quasi-mm-s", type=float, default=2.0)
     p.add_argument("--tilt-deg-s", type=float, default=6.0)
     args = p.parse_args()
     when = stamp()
+    alpha = args.alpha_deg if math.isfinite(args.alpha_deg) else args.slope_deg
     print(
-        f"[PLAN] MOVEJ mid, seek, quasi z/tilt, hold, flat+slope scans both "
-        f"speeds and reverse, tilt sign  force loop OFF  "
-        f"slope_deg={args.slope_deg}",
+        f"[PLAN] MOVEJ mid, seek, quasi, hold, flat+slope scans with "
+        f"independent δvz/δωθ, ±tilt  α={alpha}  force loop OFF",
         flush=True,
     )
     if dry_exit(args):
@@ -221,8 +326,11 @@ def main() -> int:
                 Path(args.csv),
                 when=when,
                 window_a_csv=args.window_a_csv,
+                alpha_deg=alpha,
                 slope_deg=args.slope_deg,
                 scan_axis=args.scan_axis,
+                theta_axis=args.theta_axis,
+                site=args.site,
             )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)
@@ -249,6 +357,22 @@ def main() -> int:
     fast = args.scan_fast_mm_s / 1000.0
     qz = args.quasi_mm_s / 1000.0
     wth = math.radians(args.tilt_deg_s)
+    dvz = args.dvz_mm_s / 1000.0
+    dth = math.radians(args.dth_deg_s)
+
+    def _pert(rho, seconds, seed, phase):
+        seq = scan_perturb_twists(
+            srv.dt,
+            seconds,
+            rho,
+            dvz,
+            dth,
+            scan_axis=args.scan_axis,
+            theta_axis=args.theta_axis,
+            seed=seed,
+        )
+        return srv.play(seq, phase)
+
     try:
         srv.start_twist()
         if not srv.seek_contact(0.008, contact_n=args.contact_n):
@@ -263,18 +387,20 @@ def main() -> int:
             return 0 if srv.aborted else 130
         if not srv.hold(0.0, 1.0, "hold_unload", check_abort=False):
             return 0 if srv.aborted else 130
-        if not srv.hold(axis_twist(args.scan_axis, slow), args.scan_s, "scan_flat_slow"):
+        if not srv.hold(axis_twist(args.scan_axis, slow), 0.7, "scan_flat_ref"):
             return 0 if srv.aborted else 130
-        if not srv.hold(axis_twist(args.scan_axis, fast), args.scan_s, "scan_flat_fast"):
+        if not _pert(slow, args.scan_s, 3, "scan_flat_slow"):
             return 0 if srv.aborted else 130
-        print("[SCAN] put the probe on the known slope, then the next two moves run", flush=True)
+        if not _pert(fast, args.scan_s, 4, "scan_flat_fast"):
+            return 0 if srv.aborted else 130
+        print("[SCAN] put the probe on the known wedge, then the next scans run", flush=True)
         if not srv.hold(0.0, 1.0, "pause_slope", check_abort=False):
             return 130
-        if not srv.hold(axis_twist(args.scan_axis, slow), args.scan_s, "scan_slope_slow"):
+        if not _pert(slow, args.scan_s, 5, "scan_slope_slow"):
             return 0 if srv.aborted else 130
-        if not srv.hold(axis_twist(args.scan_axis, fast), args.scan_s, "scan_slope_fast"):
+        if not _pert(fast, args.scan_s, 6, "scan_slope_fast"):
             return 0 if srv.aborted else 130
-        if not srv.hold(axis_twist(args.scan_axis, -slow), args.scan_s, "scan_rev"):
+        if not _pert(-slow, args.scan_s, 7, "scan_rev"):
             return 0 if srv.aborted else 130
         if not srv.hold(axis_twist(args.theta_axis, wth), 0.5, "tilt_up"):
             return 0 if srv.aborted else 130
@@ -294,8 +420,11 @@ def main() -> int:
                 log,
                 when=when,
                 window_a_csv=args.window_a_csv,
+                alpha_deg=alpha,
                 slope_deg=args.slope_deg,
                 scan_axis=args.scan_axis,
+                theta_axis=args.theta_axis,
+                site=args.site,
             )
     except AlignmentError as exc:
         print(f"[ERR] {exc}", flush=True)

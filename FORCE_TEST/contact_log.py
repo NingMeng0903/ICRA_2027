@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
+from id_math import disp_chirp_velocity
 from window_a import TWIST_LETTERS
 
 FIELDS = (
@@ -86,8 +87,16 @@ class ContactLogger:
         self.last_wall = float("nan")
         self.n_rows = 0
         self.last_fz = float("nan")
+        self.last_vz = float("nan")
+        self.x_proxy = 0.0
         self.last_twist = np.zeros(6, dtype=float)
         self.aborted = False
+        self.unloaded = False
+
+    def reset_proxy(self) -> None:
+        """Zero the live tool-Z integral.  Call at each matched-state settle."""
+
+        self.x_proxy = 0.0
 
     def start_twist(self) -> None:
         from peirastic.core.modes import Mode, ModeRequest
@@ -109,6 +118,7 @@ class ContactLogger:
         *,
         check_abort: bool = True,
         axis: int | None = None,
+        min_n: float | None = None,
     ) -> bool:
         from peirastic.core.ipc import Status
 
@@ -136,6 +146,10 @@ class ContactLogger:
         self.last_wall = t_wall
         fz = float(tel.get("f_ext_z", float("nan")))
         self.last_fz = fz
+        vz = float(row_m.get("v_tcp_z", float("nan")))
+        self.last_vz = vz
+        if math.isfinite(vz) and math.isfinite(dt_act):
+            self.x_proxy += vz * float(dt_act)
         rec = {
             "t_wall_s": _fmt(t_wall),
             "t_mono_s": _fmt(time.monotonic()),
@@ -160,6 +174,14 @@ class ContactLogger:
             self.aborted = True
             print(f"[ABORT] Fz={fz:.2f} N ≥ {self.abort_n:.1f} N", flush=True)
             return False
+        if (
+            min_n is not None
+            and math.isfinite(fz)
+            and fz < float(min_n)
+        ):
+            self.unloaded = True
+            print(f"[UNLOAD] Fz={fz:.2f} N < {float(min_n):.2f} N", flush=True)
+            return False
         return True
 
     def hold(
@@ -170,13 +192,39 @@ class ContactLogger:
         *,
         axis: int | None = None,
         check_abort: bool = True,
+        min_n: float | None = None,
     ) -> bool:
         t0 = time.monotonic()
         while time.monotonic() - t0 < float(seconds):
-            if not self.tick(twist, phase, check_abort=check_abort, axis=axis):
+            if not self.tick(
+                twist, phase, check_abort=check_abort, axis=axis, min_n=min_n
+            ):
                 return False
             time.sleep(self.dt)
         return True
+
+    def play_until(
+        self,
+        twist_fn,
+        phase: str,
+        pred,
+        seconds: float,
+        *,
+        check_abort: bool = True,
+        min_n: float | None = None,
+    ) -> bool:
+        """Send twist_fn(self) until pred(self) or timeout.  True = predicate hit."""
+
+        t0 = time.monotonic()
+        while time.monotonic() - t0 < float(seconds):
+            if not self.tick(
+                twist_fn(self), phase, check_abort=check_abort, min_n=min_n
+            ):
+                return False
+            if pred(self):
+                return True
+            time.sleep(self.dt)
+        return False
 
     def chirp_axis(
         self,
@@ -197,6 +245,31 @@ class ContactLogger:
                 break
             ang = 2.0 * math.pi * f0 * (math.exp(k * t) - 1.0) / k
             if not self.tick(axis_twist(axis, float(amp) * math.sin(ang)), phase):
+                return False
+            time.sleep(self.dt)
+        return True
+
+    def chirp_disp_axis(
+        self,
+        axis: int,
+        ax: float,
+        f0: float,
+        f1: float,
+        seconds: float,
+        phase: str,
+        *,
+        min_n: float | None = None,
+    ) -> bool:
+        """Displacement-limited chirp: x = Ax sin φ, so low-f does not walk millimetres."""
+
+        t0 = time.monotonic()
+        T = float(seconds)
+        while True:
+            t = time.monotonic() - t0
+            if t >= T:
+                break
+            vel = float(disp_chirp_velocity(np.asarray([t]), ax, f0, f1, T)[0])
+            if not self.tick(axis_twist(axis, vel), phase, min_n=min_n):
                 return False
             time.sleep(self.dt)
         return True
@@ -234,6 +307,35 @@ class ContactLogger:
                 return True
             time.sleep(self.dt)
         print("[ERR] no contact", flush=True)
+        return False
+
+    def seek_force(
+        self,
+        target_n: float,
+        *,
+        vel_m_s: float = 0.006,
+        seconds: float = 8.0,
+        band_n: float = 0.15,
+        phase: str = "seek_f",
+    ) -> bool:
+        """Press or retract until |F − target| ≤ band (live Fz only)."""
+
+        t0 = time.monotonic()
+        target = float(target_n)
+        band = abs(float(band_n))
+        while time.monotonic() - t0 < float(seconds):
+            fz = self.last_fz
+            if math.isfinite(fz) and abs(fz - target) <= band:
+                print(f"[FORCE] Fz={fz:.2f} N ~ {target:.2f} N", flush=True)
+                return True
+            if math.isfinite(fz) and fz > target:
+                vel = -abs(float(vel_m_s))
+            else:
+                vel = abs(float(vel_m_s))
+            if not self.tick(axis_twist(2, vel), phase, check_abort=fz <= target if math.isfinite(fz) else True):
+                return False
+            time.sleep(self.dt)
+        print(f"[ERR] seek_force timed out  Fz={self.last_fz:.2f} N  target={target:.2f}", flush=True)
         return False
 
     def retract_z(

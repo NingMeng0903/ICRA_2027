@@ -1,4 +1,4 @@
-"""Window A log contract for contact ID (07/08, 11–14).
+"""Window A log contract for contact ID (07/08, 11–15).
 
 MotionBus only publishes tool-Z.  Achieved 6-D twist, pose, and wrench
 live on Window A's --log-csv.  Analyze fails instead of inventing those
@@ -13,6 +13,7 @@ from pathlib import Path
 
 import numpy as np
 
+from id_math import so3_log_vee
 from io_csv import col, load_rows, moments
 from paths import write_readme
 
@@ -78,7 +79,7 @@ def require_window_a(
     if path is None:
         raise AlignmentError(
             "Window A CSV missing. Start Window A with --log-csv and pass "
-            "--window-a-csv. Do not analyze command-only logs for 08/11–14."
+            "--window-a-csv. Do not analyze command-only logs for 07/08/11–15."
         )
     return path
 
@@ -253,6 +254,35 @@ def tool_z_displacement(pose: np.ndarray) -> np.ndarray:
     i0 = int(np.flatnonzero(ok)[0])
     axis = n0[i0]
     out[ok] = (p[ok] - p[i0]) @ axis
+    return out
+
+
+def pose_body_twist(pose: np.ndarray, dt: np.ndarray) -> np.ndarray:
+    """Tool-frame twist from pose: v = R^T ṗ, ω = (Log(R_k^T R_{k+1}))^∨ / Δt.
+
+    Euler-angle differences are not angular velocity and are not used here.
+    """
+
+    pose = np.asarray(pose, dtype=float)
+    dt = np.asarray(dt, dtype=float).reshape(-1)
+    n = int(pose.shape[0])
+    out = np.zeros((n, 6), dtype=float)
+    if n < 2:
+        return out
+    R = rot_xyz(pose[:, 3], pose[:, 4], pose[:, 5])
+    for i in range(n - 1):
+        dti = float(dt[i + 1]) if i + 1 < dt.size else float("nan")
+        if not (math.isfinite(dti) and dti > 1e-6):
+            continue
+        if not (np.isfinite(R[i]).all() and np.isfinite(R[i + 1]).all()):
+            continue
+        if not (np.isfinite(pose[i, :3]).all() and np.isfinite(pose[i + 1, :3]).all()):
+            continue
+        v_world = (pose[i + 1, :3] - pose[i, :3]) / dti
+        out[i + 1, :3] = R[i].T @ v_world
+        out[i + 1, 3:6] = so3_log_vee(R[i].T @ R[i + 1]) / dti
+    if n > 1:
+        out[0] = out[1]
     return out
 
 

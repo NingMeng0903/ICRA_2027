@@ -9,9 +9,14 @@ Why: later force work needs a contact stiffness number.  This is the
 Command-velocity integration is not Ke — it folds the 28–40 ms delay
 into the stiffness.
 
-After the press: retract tool −Z until F drops, then MOVEJ mid-stroke.
-DATA/08_ke/ keeps only the latest take.  Each Ke and --site is appended
-to DATA/ke_sites.csv, which wipe does not touch.
+The paper number is not a single secant.  Analysis returns the local
+Ke(F) envelope on loading and unloading inside the work band
+F ∈ [f_lo, f_hi] (default 2–6 N), and ᾱKe = max |Ke_local|.
+
+After the press: controlled unload at the same speed, then retract
+off the pad and MOVEJ mid-stroke.  DATA/08_ke/ keeps only the latest
+take.  Each row is appended to DATA/ke_sites.csv and
+DATA/ke_envelope.csv (wipe does not touch those).
 """
 
 from __future__ import annotations
@@ -29,12 +34,14 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from goto_mid import add_movej_args, go_mid, go_mid_from_args
 from id_common import load_aligned, stash_window_a
+from id_math import dump_jsonable, local_stiffness, stiffness_envelope
 from io_csv import col, write_json
 from paper_fig import ACH, MINUS, mpl, panel_tag, save
 from paths import DATA, add_playground, dry_exit, kind_dirs, stamp, write_readme
 from window_a import AlignmentError, add_window_a_arg, fmt_finite, phase_mask, tool_z_displacement
 
 SITES_CSV = DATA / "ke_sites.csv"
+ENVELOPE_CSV = DATA / "ke_envelope.csv"
 SITE_FIELDS = (
     "collected_at",
     "site",
@@ -48,6 +55,16 @@ SITE_FIELDS = (
     "press_s",
     "aborted",
     "align_gap_ms",
+)
+ENV_FIELDS = SITE_FIELDS + (
+    "ke_bar_n_m",
+    "ke_min_n_m",
+    "ke_load_bar_n_m",
+    "ke_unload_bar_n_m",
+    "f_lo_n",
+    "f_hi_n",
+    "work_band_reached",
+    "n_local",
 )
 TAU_L_S = 0.040
 V_E_EXAMPLE_M_S = 0.010
@@ -66,11 +83,47 @@ def append_site_row(row: dict) -> Path:
     return SITES_CSV
 
 
+def append_envelope_row(row: dict) -> Path:
+    DATA.mkdir(parents=True, exist_ok=True)
+    fresh = not ENVELOPE_CSV.is_file()
+    with ENVELOPE_CSV.open("a", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=list(ENV_FIELDS))
+        if fresh:
+            writer.writeheader()
+        writer.writerow({key: row.get(key, "") for key in ENV_FIELDS})
+    return ENVELOPE_CSV
+
+
 def _press_slice(rows, fz: np.ndarray) -> np.ndarray:
     press = phase_mask(rows, "press")
     if int(np.count_nonzero(press)) >= 4:
         return press
     return np.isfinite(fz) & (fz > 0.4)
+
+
+def _secant(x: np.ndarray, f: np.ndarray) -> tuple[float, float, float, float]:
+    ok = np.isfinite(x) & np.isfinite(f)
+    if int(np.count_nonzero(ok)) < 4:
+        return float("nan"), float("nan"), float("nan"), float("nan")
+    fz0 = float(f[ok][0])
+    fz1 = float(f[ok][-1])
+    dxp = float(x[ok][-1] - x[ok][0])
+    ke = float((fz1 - fz0) / dxp) if abs(dxp) > 1e-6 else float("nan")
+    return fz0, fz1, dxp, ke
+
+
+def _limb_envelope(x: np.ndarray, f: np.ndarray, mask: np.ndarray, f_lo: float, f_hi: float) -> dict:
+    if int(np.count_nonzero(mask)) < 8:
+        empty = stiffness_envelope(np.array([]), np.array([]), f_lo, f_hi)
+        empty["secant"] = float("nan")
+        return empty
+    fm, ke = local_stiffness(x[mask], f[mask])
+    env = stiffness_envelope(fm, ke, f_lo, f_hi)
+    _fz0, _fz1, _dx, sec = _secant(x[mask], f[mask])
+    env["secant"] = sec
+    env["f_center"] = fm
+    env["ke_local"] = ke
+    return env
 
 
 def analyze(
@@ -83,6 +136,8 @@ def analyze(
     aborted: bool = False,
     record_site: bool = True,
     window_a_csv: str = "",
+    f_lo: float = 2.0,
+    f_hi: float = 6.0,
 ) -> dict:
     rows, align = load_aligned(Path(csv_path), window_a_csv or None)
     t = col(rows, "t_wall_s", "t_mono_s")
@@ -100,21 +155,31 @@ def analyze(
         )
     )
     press = _press_slice(rows, fz)
-    if int(np.count_nonzero(press)) >= 4:
-        fz0 = float(fz[press][0])
-        fz1 = float(fz[press][-1])
-        dF = float(fz1 - fz0)
-        x_p = pose_dx[press]
-        if np.isfinite(x_p).sum() >= 2:
-            dxp = float(x_p[np.isfinite(x_p)][-1] - x_p[np.isfinite(x_p)][0])
-        else:
-            dxp = float("nan")
-        ke = float(dF / dxp) if math.isfinite(dxp) and abs(dxp) > 1e-6 else float("nan")
-    else:
-        fz0 = fz1 = dF = dxp = ke = float("nan")
+    unload = phase_mask(rows, "unload")
+    fz0, fz1, dxp, ke = _secant(pose_dx[press], fz[press]) if np.any(press) else (
+        float("nan"),
+        float("nan"),
+        float("nan"),
+        float("nan"),
+    )
+    load_env = _limb_envelope(pose_dx, fz, press, f_lo, f_hi)
+    unload_env = _limb_envelope(pose_dx, fz, unload, f_lo, f_hi)
+    bars = [
+        v
+        for v in (load_env.get("ke_bar"), unload_env.get("ke_bar"))
+        if math.isfinite(float(v or float("nan")))
+    ]
+    ke_bar = float(max(bars)) if bars else float("nan")
+    mins = [
+        v
+        for v in (load_env.get("ke_min"), unload_env.get("ke_min"))
+        if math.isfinite(float(v or float("nan")))
+    ]
+    ke_min = float(min(mins)) if mins else float("nan")
+    band_ok = bool(load_env.get("work_band_reached") or unload_env.get("work_band_reached"))
     bound_n = (
-        2.0 * float(ke) * V_E_EXAMPLE_M_S * TAU_L_S
-        if math.isfinite(ke)
+        2.0 * float(ke_bar) * V_E_EXAMPLE_M_S * TAU_L_S
+        if math.isfinite(ke_bar)
         else float("nan")
     )
     payload = {
@@ -122,9 +187,17 @@ def analyze(
         "window_a_csv": align.get("window_a_csv"),
         "site": site,
         "ke_n_m": ke,
+        "ke_secant_n_m": ke,
+        "ke_bar_n_m": ke_bar,
+        "ke_min_n_m": ke_min,
+        "ke_load": {k: load_env[k] for k in ("n", "ke_min", "ke_max", "ke_bar", "ke_median", "work_band_reached", "secant")},
+        "ke_unload": {k: unload_env[k] for k in ("n", "ke_min", "ke_max", "ke_bar", "ke_median", "work_band_reached", "secant")},
+        "f_lo_n": f_lo,
+        "f_hi_n": f_hi,
+        "work_band_reached": band_ok,
         "fz0_n": fz0,
         "fz1_n": fz1,
-        "dF_n": dF,
+        "dF_n": fz1 - fz0 if math.isfinite(fz0) and math.isfinite(fz1) else float("nan"),
         "dx_mm": 1e3 * dxp if math.isfinite(dxp) else float("nan"),
         "dx_source": "pose_tool_z",
         "press_mm_s": press_mm_s,
@@ -132,13 +205,79 @@ def analyze(
         "aborted": bool(aborted),
         "align": align,
         "example_delay_bound_n": bound_n,
-        "example_bound_note": "2 Ke * 10 mm/s * 40 ms; not a measured ve",
-        "what": "environment stiffness from actual pose, not inner-loop Gv",
+        "example_bound_note": "2 * Ke_bar * 10 mm/s * 40 ms; uses worst-case local Ke, not the secant",
+        "what": "stiffness envelope from actual pose; secant is not the paper number",
         "collected_at": when,
         "sites_csv": str(SITES_CSV),
+        "envelope_csv": str(ENVELOPE_CSV),
     }
     data, visu = kind_dirs("08_ke", preserve=csv_path)
-    write_json(data / "ke.json", payload)
+    write_json(data / "ke.json", dump_jsonable(payload))
+    _plot_08(t, fz, pose_dx, press, unload, load_env, f_lo, f_hi, visu)
+    site_txt = site if site else "（未标部位，用 --site）"
+    hard = math.isfinite(ke_bar) and ke_bar >= 500.0
+    band_note = (
+        f"工作带 [{f_lo:.1f},{f_hi:.1f}] N 内 ᾱKe = {fmt_finite(ke_bar, '.1f')} N/m，"
+        f"下缘 {fmt_finite(ke_min, '.1f')} N/m。"
+        if band_ok
+        else f"没有走到 [{f_lo:.1f},{f_hi:.1f}] N。后面的 ΔF≤Ke Δx_tail 不能用这一拍的平均 secant 充数。"
+    )
+    write_readme(
+        visu,
+        f"""# 08_ke — 开环环境刚度包络
+
+采集：`{when}` · filter OFF · 力环关 · 开环下压/卸载 · 部位 **{site_txt}**
+
+## 结论
+
+- 单次 secant Ke ≈ {fmt_finite(ke, '.1f')} N/m（ΔF / 实际 tool-Z，press 段）。**论文用的是包络，不是这个数。**
+- {band_note}
+- 加载 ᾱKe = {fmt_finite(load_env.get('ke_bar'), '.1f')}，卸载 ᾱKe = {fmt_finite(unload_env.get('ke_bar'), '.1f')} N/m。
+- 位移来源是 Window A 位姿，**不是**命令积分。对齐中位间隙 {fmt_finite(align.get('gap_median_ms', float('nan')), '.1f')} ms。
+- 量纲示例 2 ᾱKe ve τℓ（ve=10 mm/s，τℓ=40 ms）≈ {fmt_finite(bound_n, '.2f')} N。{'硬垫，C1 下界有机会紧。' if hard else '若这是软垫，主实验必须另采硬垫才谈不可实现。'}
+- 矩阵行追加在 `{ENVELOPE_CSV.name}`，wipe 不删。同一部位至少再换 2–3 个速度。
+
+不要开混合。不要写进 yaml，除非明确要写。
+""",
+    )
+    site_row = {
+        "collected_at": when,
+        "site": site,
+        "ke_n_m": f"{ke:.3f}" if math.isfinite(ke) else "",
+        "fz0_n": f"{fz0:.3f}" if math.isfinite(fz0) else "",
+        "fz1_n": f"{fz1:.3f}" if math.isfinite(fz1) else "",
+        "dF_n": f"{fz1 - fz0:.3f}" if math.isfinite(fz0) and math.isfinite(fz1) else "",
+        "dx_mm": f"{1e3 * dxp:.3f}" if math.isfinite(dxp) else "",
+        "dx_source": "pose_tool_z",
+        "press_mm_s": "" if press_mm_s is None else f"{press_mm_s:.3f}",
+        "press_s": "" if press_s is None else f"{press_s:.3f}",
+        "aborted": "1" if aborted else "0",
+        "align_gap_ms": f"{float(align.get('gap_median_ms', float('nan'))):.2f}",
+        "ke_bar_n_m": f"{ke_bar:.3f}" if math.isfinite(ke_bar) else "",
+        "ke_min_n_m": f"{ke_min:.3f}" if math.isfinite(ke_min) else "",
+        "ke_load_bar_n_m": f"{float(load_env.get('ke_bar') or float('nan')):.3f}"
+        if math.isfinite(float(load_env.get("ke_bar") or float("nan")))
+        else "",
+        "ke_unload_bar_n_m": f"{float(unload_env.get('ke_bar') or float('nan')):.3f}"
+        if math.isfinite(float(unload_env.get("ke_bar") or float("nan")))
+        else "",
+        "f_lo_n": f"{f_lo:.2f}",
+        "f_hi_n": f"{f_hi:.2f}",
+        "work_band_reached": "1" if band_ok else "0",
+        "n_local": str(int(load_env.get("n") or 0) + int(unload_env.get("n") or 0)),
+    }
+    if record_site:
+        append_site_row(site_row)
+        append_envelope_row(site_row)
+    print(
+        f"[KE] secant={ke:.1f}  bar={ke_bar:.1f} N/m  band={band_ok}  "
+        f"site={site_txt}  data={data}",
+        flush=True,
+    )
+    return payload
+
+
+def _plot_08(t, fz, pose_dx, press, unload, load_env, f_lo, f_hi, visu: Path) -> None:
     plt = mpl()
     fig, axes = plt.subplots(2, 1, figsize=(3.50, 3.80), sharex=True, constrained_layout=True)
     t0 = float(t[np.isfinite(t)][0]) if np.isfinite(t).any() else 0.0
@@ -148,6 +287,8 @@ def analyze(
     if np.any(press):
         axes[0].axvspan(float(tt[press][0]), float(tt[press][-1]), color=ACH, alpha=0.08)
         axes[1].axvspan(float(tt[press][0]), float(tt[press][-1]), color=MINUS, alpha=0.08)
+    if np.any(unload):
+        axes[0].axvspan(float(tt[unload][0]), float(tt[unload][-1]), color=MINUS, alpha=0.08)
     axes[0].set_ylabel("Fz (N)")
     axes[1].set_ylabel("tool-Z travel (mm)")
     axes[1].set_xlabel("time (s)")
@@ -156,47 +297,19 @@ def analyze(
         panel_tag(ax, letter)
     save(fig, visu, "press.png")
     plt.close(fig)
-    site_txt = site if site else "（未标部位，用 --site）"
-    hard = math.isfinite(ke) and ke >= 500.0
-    write_readme(
-        visu,
-        f"""# 08_ke — 开环环境刚度
-
-采集：`{when}` · filter OFF · 力环关 · 开环下压 · 部位 **{site_txt}**
-
-## 结论
-
-- **Ke ≈ {fmt_finite(ke, '.1f')} N/m**（ΔF / 实际 tool-Z 位移，press 段）。这是垫/组织，不是内环 Gv。
-- 位移来源是 Window A 位姿，**不是**命令积分。对齐中位间隙 {fmt_finite(align.get('gap_median_ms', float('nan')), '.1f')} ms。
-- 接触后 Fz {fmt_finite(fz0, '.2f')} → {fmt_finite(fz1, '.2f')} N，Δx = {fmt_finite(1e3 * dxp if math.isfinite(dxp) else float('nan'), '.2f')} mm。
-- 量纲示例 2 Ke ve τℓ（ve=10 mm/s，τℓ=40 ms）≈ {fmt_finite(bound_n, '.2f')} N。{'硬垫，C1 下界有机会紧。' if hard else '若这是软垫，主实验必须另采硬垫才谈不可实现。'}
-- Ke 与部位追加在 `{SITES_CSV.name}`，wipe 不删。
-
-不要开混合。不要写进 yaml，除非明确要写。
-""",
-    )
-    if record_site:
-        append_site_row(
-            {
-                "collected_at": when,
-                "site": site,
-                "ke_n_m": f"{ke:.3f}" if math.isfinite(ke) else "",
-                "fz0_n": f"{fz0:.3f}" if math.isfinite(fz0) else "",
-                "fz1_n": f"{fz1:.3f}" if math.isfinite(fz1) else "",
-                "dF_n": f"{dF:.3f}" if math.isfinite(dF) else "",
-                "dx_mm": f"{1e3 * dxp:.3f}" if math.isfinite(dxp) else "",
-                "dx_source": "pose_tool_z",
-                "press_mm_s": "" if press_mm_s is None else f"{press_mm_s:.3f}",
-                "press_s": "" if press_s is None else f"{press_s:.3f}",
-                "aborted": "1" if aborted else "0",
-                "align_gap_ms": f"{float(align.get('gap_median_ms', float('nan'))):.2f}",
-            }
-        )
-    print(
-        f"[KE] {ke:.1f} N/m  dx={1e3 * dxp:.2f} mm pose  site={site_txt}  data={data}",
-        flush=True,
-    )
-    return payload
+    fig, ax = plt.subplots(figsize=(3.50, 2.40), constrained_layout=True)
+    fm = load_env.get("f_center")
+    ke_l = load_env.get("ke_local")
+    if fm is not None and ke_l is not None:
+        ok = np.isfinite(fm) & np.isfinite(ke_l)
+        if np.any(ok):
+            ax.plot(fm[ok], ke_l[ok], color=ACH, lw=1.0)
+    ax.axvspan(f_lo, f_hi, color=MINUS, alpha=0.08)
+    ax.set_xlabel("Fz (N)")
+    ax.set_ylabel("local Ke (N/m)")
+    ax.grid(True, alpha=0.28)
+    save(fig, visu, "ke_envelope.png")
+    plt.close(fig)
 
 
 def main() -> int:
@@ -206,11 +319,15 @@ def main() -> int:
     p.add_argument("--shm-prefix", default="")
     p.add_argument("--seek-mm-s", type=float, default=10.0)
     p.add_argument("--press-mm-s", type=float, default=3.0)
-    p.add_argument("--press-s", type=float, default=2.0)
+    p.add_argument("--press-s", type=float, default=5.0)
+    p.add_argument("--target-n", type=float, default=5.0, help="stop press at this F if reached first")
+    p.add_argument("--f-lo", type=float, default=2.0)
+    p.add_argument("--f-hi", type=float, default=6.0)
+    p.add_argument("--unload-s", type=float, default=4.0)
     p.add_argument("--retract-mm-s", type=float, default=8.0)
     p.add_argument("--retract-s", type=float, default=2.5)
     p.add_argument("--contact-n", type=float, default=0.40)
-    p.add_argument("--abort-n", type=float, default=4.50)
+    p.add_argument("--abort-n", type=float, default=6.50)
     p.add_argument("--hz", type=float, default=200.0)
     p.add_argument(
         "--skip-return-movej",
@@ -226,9 +343,10 @@ def main() -> int:
     if not args.csv:
         print(
             f"[PLAN] MOVEJ mid-stroke, seek + press {args.press_mm_s:.1f} mm/s "
-            f"{args.press_s:.1f}s, retract −Z, MOVEJ mid  "
-            f"site={site or '(tell me after)'}  abort F≥{args.abort_n:.1f} N  "
-            f"force loop OFF  Δx=Window A pose  log→{SITES_CSV.name}",
+            f"until F≈{args.target_n:.1f} N or {args.press_s:.1f}s, same-speed unload, "
+            f"retract −Z, MOVEJ mid  site={site or '(tell me after)'}  "
+            f"band [{args.f_lo:.1f},{args.f_hi:.1f}] N  abort F≥{args.abort_n:.1f} N  "
+            f"force loop OFF  Δx=Window A pose  log→{ENVELOPE_CSV.name}",
             flush=True,
         )
         print("[PLAN] Window A must be started with --log-csv; pass --window-a-csv", flush=True)
@@ -243,6 +361,8 @@ def main() -> int:
                 press_mm_s=args.press_mm_s,
                 press_s=args.press_s,
                 window_a_csv=args.window_a_csv,
+                f_lo=args.f_lo,
+                f_hi=args.f_hi,
             )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)
@@ -282,9 +402,27 @@ def main() -> int:
             print("[ERR] no contact", flush=True)
             rc = 2
         if latched and rc == 0:
-            if not srv.hold(args.press_mm_s / 1000.0, args.press_s, "press"):
-                estop = not srv.aborted
-                rc = 0 if srv.aborted else 130
+            t_press = time.monotonic()
+            while time.monotonic() - t_press < args.press_s:
+                if not srv.tick(args.press_mm_s / 1000.0, "press"):
+                    estop = not srv.aborted
+                    rc = 0 if srv.aborted else 130
+                    break
+                if math.isfinite(srv.last_fz) and srv.last_fz >= args.target_n:
+                    print(f"[PRESS] Fz={srv.last_fz:.2f} N ≥ {args.target_n:.1f} N", flush=True)
+                    break
+                time.sleep(srv.dt)
+        if latched and not estop and rc == 0:
+            t_un = time.monotonic()
+            while time.monotonic() - t_un < args.unload_s:
+                if not srv.tick(-abs(args.press_mm_s) / 1000.0, "unload", check_abort=False):
+                    estop = True
+                    rc = 130
+                    break
+                if math.isfinite(srv.last_fz) and srv.last_fz <= args.f_lo:
+                    print(f"[UNLOAD] Fz={srv.last_fz:.2f} N ≤ {args.f_lo:.1f} N", flush=True)
+                    break
+                time.sleep(srv.dt)
         if latched and not estop:
             srv.retract_z(
                 args.retract_mm_s / 1000.0,
@@ -324,6 +462,8 @@ def main() -> int:
                 press_s=args.press_s,
                 aborted=bool(srv.aborted),
                 window_a_csv=args.window_a_csv,
+                f_lo=args.f_lo,
+                f_hi=args.f_hi,
             )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)

@@ -1,9 +1,9 @@
 # 13_contact_hs — 力–力矩–扫描耦合
 
-本轮**还没采**。准静态、保持松弛、平面 vs 已知坠角、正反扫、倾角符号。
+本轮**还没采**。扫描段叠加互不重频的 \(\delta v_z,\delta\omega_\theta\)，同时改变 \(\rho\)。否则 \(X=[v_z,\omega_\theta,\rho]\) 秩到不了 3。
 
-ρ 与 uz 不能完全共线。90° 不是预设定律。Window A 需要 tx, ty, tz。
+`--alpha-deg` 是这一拍的已知楔角，写入 `DATA/hs_alphas.csv`。±tilt 只做符号。粗角度估计要 −10/−5/0/+5/+10° 各一拍。90° 不是预设定律。Window A 需要 tx, ty, tz。
 
 ```bash
-python FORCE_TEST/13_contact_hs.py --window-a-csv /path/to/window_a.csv --slope-deg 15 --dry-run
+python FORCE_TEST/13_contact_hs.py --window-a-csv /path/to/window_a.csv --alpha-deg 5 --dry-run
 ```

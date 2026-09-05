@@ -1,8 +1,8 @@
-# 12_stop_tail — 旧队列与停止尾巴
+# 12_stop_tail — 同状态不同队列
 
-本轮**还没采**。这是 C1 充分性合同的辨识：press-stop / retract-stop / 反转 / 倾转停止，并做同 (F,v) 不同历史。
+本轮**还没采**。不要按 slow 0.8 s → fast 0.8 s 直接采完就算 “same state different queue”。
 
-零命令不是接触保持。看停止边之后的压入和晚到力峰。
+在线构造：A 以恒定 \(u_{\rm match}\) 压到 \(F^\star\)；B 先 burst 再切到同一 \(u_{\rm match}\)，等到 live \((F,x,v)\) 进入 A 的门再施加**同一** backup。分析用 Window A 位姿复核。\(\bar w=\max|\Delta F|+\delta\)，不是 p90。覆盖率留给 15。
 
 ```bash
 python FORCE_TEST/12_stop_tail.py --window-a-csv /path/to/window_a.csv --dry-run

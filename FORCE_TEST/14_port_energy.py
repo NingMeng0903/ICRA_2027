@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
-"""Physical port power and prefix energy debt.  Force loop OFF.
+"""Physical port power and prefix-wise energy debt.  Force loop OFF.
 
-What: air z, contact z, tilt, tangential scan, then press-then-retract
-      (output then recover).  Compare same-tick command power, delayed
-      command power, achieved-twist power, and pose-increment power.
-Why: a tank-in-QP is not a contribution.  This file only asks whether a
-      conservative ζ ≤ ζ_ref exists.  If it fails, the paper drops
-      passivity and keeps the name “energy-aware scheduler”.
+What: compare TCP power, contact-point power (same wrench/twist, offset
+      adjoint), achieved-twist power, and SO(3)-log pose twist power.
+      The conservative bound is
+          P ≥ P̂ − ‖F‖ ē_v − ‖τ‖ ē_ω
+      with (ē_v, ē_ω) from the 11 execution contract, not ‖v_ach−v_cmd‖.
+Why: tank-in-QP is not a contribution.  passivity_claim_allowed is True
+     only if invariance holds, the bound comes from 11, and
+     D_true(k) ≤ D_bound(k) for every prefix k.
 
-Six-D wrench needs tx, ty, tz on Window A.  Missing torque degrades
-the certificate to translation-only.
+Missing 11 JSON, missing torque, or any prefix leak → no passivity claim.
 """
 
 from __future__ import annotations
@@ -25,15 +26,26 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from contact_log import ContactLogger, axis_twist
 from goto_mid import go_mid_from_args
-from id_common import add_contact_args, load_aligned, stash_window_a
+from id_common import add_contact_args, load_aligned, load_kind_json, stash_window_a
+from id_math import (
+    dump_jsonable,
+    port_power,
+    power_invariance_rel_err,
+    prefix_covers,
+    prefix_debt,
+    prefix_work,
+    twist_at_offset,
+    wrench_at_offset,
+)
 from io_csv import col, write_json
-from paper_fig import ACH, CMD, MINUS, mpl, panel_tag, save
+from paper_fig import ACH, CMD, MINUS, mpl, save
 from paths import add_playground, dry_exit, kind_dirs, stamp, write_readme
 from window_a import (
     AlignmentError,
     fmt_finite,
     has_torque,
     pose6,
+    pose_body_twist,
     twist_ach6,
     twist_cmd6,
     wrench6,
@@ -50,22 +62,6 @@ def _dt(t: np.ndarray) -> np.ndarray:
     return np.where(np.isfinite(dt) & (dt > 1e-4), dt, 0.005)
 
 
-def _power(wrench: np.ndarray, twist: np.ndarray, *, trans_only: bool) -> np.ndarray:
-    p = np.sum(wrench[:, :3] * twist[:, :3], axis=1)
-    if not trans_only:
-        p = p + np.sum(wrench[:, 3:6] * twist[:, 3:6], axis=1)
-    return p
-
-
-def _pose_twist(pose: np.ndarray, dt: np.ndarray) -> np.ndarray:
-    out = np.zeros((pose.shape[0], 6), dtype=float)
-    dp = np.diff(pose, axis=0)
-    out[1:, :3] = dp[:, :3] / dt[1:, None]
-    out[1:, 3:6] = dp[:, 3:6] / dt[1:, None]
-    out[0] = out[1] if out.shape[0] > 1 else 0.0
-    return out
-
-
 def _shift(arr: np.ndarray, ticks: int) -> np.ndarray:
     out = np.full_like(arr, np.nan)
     k = max(int(ticks), 0)
@@ -76,20 +72,14 @@ def _shift(arr: np.ndarray, ticks: int) -> np.ndarray:
     return out
 
 
-def _prefix_debt(p: np.ndarray, dt: np.ndarray) -> np.ndarray:
-    """Running max of −cumsum(p dt).  First-out-then-recover shows up here."""
-
-    work = np.cumsum(np.where(np.isfinite(p), p, 0.0) * dt)
-    debt = np.maximum.accumulate(np.maximum(-work, 0.0))
-    return debt
-
-
 def analyze(
     csv_path: Path,
     *,
     when: str,
     window_a_csv: str = "",
     t0_s: float = T0_S,
+    lever_m: float = 0.03,
+    id_root: str = "",
 ) -> dict:
     rows, align = load_aligned(Path(csv_path), window_a_csv or None)
     t = col(rows, "t_wall_s", "t_mono_s")
@@ -98,36 +88,63 @@ def analyze(
     wrench = wrench6(rows)
     cmd = twist_cmd6(rows)
     ach = twist_ach6(rows)
+    pose_tw = pose_body_twist(pose, dt)
     trans_only = not has_torque(rows)
-    p_cmd = _power(wrench, cmd, trans_only=trans_only)
+    r = np.array([0.0, 0.0, float(lever_m)], dtype=float)
+    inv_rel = power_invariance_rel_err(wrench, ach, r, trans_only=trans_only)
+    inv_ok = math.isfinite(inv_rel) and inv_rel < 1e-9
+
+    p_cmd = port_power(wrench, cmd, trans_only=trans_only)
     delay_ticks = int(round(float(t0_s) / float(np.median(dt))))
-    p_cmd_d = _power(wrench, _shift(cmd, delay_ticks), trans_only=trans_only)
-    p_ach = _power(wrench, ach, trans_only=trans_only)
-    p_pose = _power(wrench, _pose_twist(pose, dt), trans_only=trans_only)
-    # Conservative measured power: achieved twist minus a sync envelope.
-    e_v = np.linalg.norm(ach[:, :3] - cmd[:, :3], axis=1)
-    f_n = np.linalg.norm(wrench[:, :3], axis=1)
-    p_cons = p_ach - f_n * e_v
+    p_cmd_d = port_power(wrench, _shift(cmd, delay_ticks), trans_only=trans_only)
+    p_ach = port_power(wrench, ach, trans_only=trans_only)
+    p_pose = port_power(wrench, pose_tw, trans_only=trans_only)
+    p_contact = port_power(
+        wrench_at_offset(wrench, r), twist_at_offset(ach, r), trans_only=trans_only
+    )
+
+    exec11 = load_kind_json("11_exec_2dof", root=Path(id_root) if id_root else None)
+    tube = (exec11 or {}).get("tube") or {}
+    e_v = float((tube.get("e_vz") or {}).get("bar") or tube.get("e_vz_bar") or float("nan"))
+    e_w = float((tube.get("e_wth") or {}).get("bar") or tube.get("e_wth_bar") or float("nan"))
+    bound_source = "11_exec_2dof" if exec11 and math.isfinite(e_v) else "missing_11_contract"
+    # Same-take ‖v_ach−v_cmd‖ is recorded but is *not* a physical bound.
+    e_v_same = float(np.nanpercentile(np.linalg.norm(ach[:, :3] - cmd[:, :3], axis=1), 95))
+    reasons: list[str] = []
+    if trans_only:
+        reasons.append("torque columns missing")
+    if not inv_ok:
+        reasons.append(f"TCP↔contact power invariance failed ({inv_rel})")
+    if bound_source != "11_exec_2dof":
+        reasons.append("no 11 execution-contract ē_v, ē_ω")
+        e_v_use = float("nan")
+        e_w_use = float("nan")
+        p_bound = np.full_like(p_ach, np.nan)
+    else:
+        e_v_use = e_v
+        e_w_use = e_w if math.isfinite(e_w) else 0.0
+        f_n = np.linalg.norm(wrench[:, :3], axis=1)
+        tau_n = np.linalg.norm(wrench[:, 3:6], axis=1) if not trans_only else np.zeros(wrench.shape[0])
+        p_bound = p_ach - f_n * e_v_use - tau_n * e_w_use
+
     work = {
         "cmd": float(np.nansum(p_cmd * dt)),
         "cmd_delayed": float(np.nansum(p_cmd_d * dt)),
         "achieved": float(np.nansum(p_ach * dt)),
         "pose": float(np.nansum(p_pose * dt)),
-        "conservative": float(np.nansum(p_cons * dt)),
+        "contact": float(np.nansum(p_contact * dt)),
+        "bound": float(np.nansum(p_bound * dt)) if np.isfinite(p_bound).any() else float("nan"),
     }
-    debt = {
-        "cmd": float(np.nanmax(_prefix_debt(p_cmd, dt))),
-        "cmd_delayed": float(np.nanmax(_prefix_debt(p_cmd_d, dt))),
-        "achieved": float(np.nanmax(_prefix_debt(p_ach, dt))),
-        "pose": float(np.nanmax(_prefix_debt(p_pose, dt))),
-        "conservative": float(np.nanmax(_prefix_debt(p_cons, dt))),
-    }
-    # Coverage: conservative integral never exceeds achieved by a large positive leak
-    # (we want ζ_cons ≤ ζ_ref + margin).  Here "ref" is pose increment.
-    leak = work["conservative"] - work["pose"]
-    covers = math.isfinite(leak) and leak <= 0.05
-    prefix_ok = debt["conservative"] + 1e-9 >= debt["pose"]
-    tcp_vs_contact = abs(work["achieved"] - work["pose"])
+    d_pose = prefix_debt(prefix_work(p_pose, dt))
+    d_ach = prefix_debt(prefix_work(p_ach, dt))
+    d_bound = prefix_debt(prefix_work(p_bound, dt)) if np.isfinite(p_bound).any() else np.full_like(d_ach, np.nan)
+    d_true = d_pose if np.isfinite(p_pose).any() else d_ach
+    cover = prefix_covers(d_true, d_bound)
+    if not cover["all_ok"]:
+        reasons.append(
+            f"prefix coverage failed (frac={cover['frac']}, max_viol={cover['max_violation']})"
+        )
+    claim = bool(inv_ok and not trans_only and bound_source == "11_exec_2dof" and cover["all_ok"])
     payload = {
         "csv": str(csv_path),
         "align": align,
@@ -135,49 +152,62 @@ def analyze(
         "trans_only": bool(trans_only),
         "t0_s": t0_s,
         "delay_ticks": delay_ticks,
+        "lever_m": lever_m,
+        "invariance_rel_err": inv_rel,
+        "invariance_ok": bool(inv_ok),
+        "bound_source": bound_source,
+        "e_v_bar": e_v_use if bound_source == "11_exec_2dof" else float("nan"),
+        "e_w_bar": e_w_use if bound_source == "11_exec_2dof" else float("nan"),
+        "e_v_same_take_p95": e_v_same,
         "work_j": work,
-        "prefix_debt_j": debt,
-        "conservative_covers_pose_work": bool(covers),
-        "prefix_debt_covers_pose": bool(prefix_ok),
-        "tcp_vs_pose_work_abs_j": tcp_vs_contact,
-        "passivity_claim_allowed": bool(covers and prefix_ok and not trans_only),
+        "prefix_cover": cover,
+        "prefix_debt_max_j": {
+            "achieved": float(np.nanmax(d_ach)) if d_ach.size else float("nan"),
+            "pose": float(np.nanmax(d_pose)) if d_pose.size else float("nan"),
+            "bound": float(np.nanmax(d_bound)) if np.isfinite(d_bound).any() else float("nan"),
+        },
+        "passivity_claim_allowed": bool(claim),
+        "claim_blockers": reasons,
+        "exec_json": None if exec11 is None else exec11.get("_path"),
         "collected_at": when,
-        "what": "port calibration, not a tank theorem",
+        "what": "port calibration; passivity only if 11-bound covers every prefix",
     }
     data, visu = kind_dirs(KIND, preserve=csv_path)
-    write_json(data / "energy.json", payload)
-    _plot_14(t, p_cmd, p_ach, p_pose, p_cons, visu)
-    claim = (
-        "保守功包住位姿参考，且前缀债务不漏中途透支。仍只是辨识证书，不是闭环无源。"
-        if payload["passivity_claim_allowed"]
-        else "覆盖失败或只有平移功率：主文取消无源性声明，只留 energy-aware scheduler。"
-    )
+    write_json(data / "energy.json", dump_jsonable(payload))
+    _plot_14(t, p_cmd, p_ach, p_pose, p_bound, d_true, d_bound, visu)
+    if claim:
+        claim_txt = "11 的 ē 给出的下界在每一个 prefix 上包住位姿债务。仍只是辨识证书，不是闭环无源。"
+    else:
+        claim_txt = "不能声称 passivity：" + ("；".join(reasons) if reasons else "条件不足") + "。"
     write_readme(
         visu,
-        f"""# 14_port_energy — 真实端口与前缀能量
+        f"""# 14_port_energy — 真实端口与逐段前缀债务
 
-采集：`{when}` · filter OFF · 力环关 · {'六维 wrench' if not trans_only else '**无力矩列，只结算 F·v**'}
+采集：`{when}` · filter OFF · 力环关 · {'六维 wrench' if not trans_only else '**无力矩列**'} · 边界来源 **{bound_source}**
 
 ## 结论
 
-- 净功 (J)：命令 {fmt_finite(work['cmd'], '.4f')}，延迟命令 {fmt_finite(work['cmd_delayed'], '.4f')}，实际 twist {fmt_finite(work['achieved'], '.4f')}，位姿增量 {fmt_finite(work['pose'], '.4f')}，保守 {fmt_finite(work['conservative'], '.4f')}。
-- 最大前缀债务 (J)：实际 {fmt_finite(debt['achieved'], '.4f')}，位姿 {fmt_finite(debt['pose'], '.4f')}，保守 {fmt_finite(debt['conservative'], '.4f')}。
-- {claim}
-- 有限罐会被摩擦路径耗尽。不要把 tank 和“永远保持接触”写成同一个无限时域定理。
+- TCP↔接触点功率不变性相对误差 {fmt_finite(inv_rel, '.2e')}（应接近机器精度）。
+- 角速度来自 \({{(\\mathrm{{Log}}\\,R_k^\\top R_{{k+1}})^\\vee / \\Delta t}}\)，不是 Euler 差分。
+- 净功 (J)：实际 twist {fmt_finite(work['achieved'], '.4f')}，位姿 {fmt_finite(work['pose'], '.4f')}，接触点 {fmt_finite(work['contact'], '.4f')}，下界 {fmt_finite(work['bound'], '.4f')}。
+- 前缀覆盖：{cover['n']} 点，全部通过 = {cover['all_ok']}，比例 {fmt_finite(cover['frac'], '.3f')}，最大违约 {fmt_finite(cover['max_violation'], '.4f')} J。
+- {claim_txt}
+- 同文件 ‖v_ach−v_cmd‖ p95 = {fmt_finite(e_v_same, '.4f')} m/s，**不是** conservative bound。
 
 ## 图
 
-`port_power.png`：四种功率。先输出后回收会在积分里先负后正。
+`port_power.png`：功率。`prefix_debt.png`：D_true(k) 对 D_bound(k)。
 """,
     )
     print(
-        f"[14] W_ach={work['achieved']:.4f} J  cover={payload['passivity_claim_allowed']}  data={data}",
+        f"[14] claim={claim}  inv={inv_rel:.2e}  cover={cover['frac']}  "
+        f"src={bound_source}  data={data}",
         flush=True,
     )
     return payload
 
 
-def _plot_14(t, p_cmd, p_ach, p_pose, p_cons, visu: Path) -> None:
+def _plot_14(t, p_cmd, p_ach, p_pose, p_bound, d_true, d_bound, visu: Path) -> None:
     t0 = float(t[np.isfinite(t)][0]) if np.isfinite(t).any() else 0.0
     tt = t - t0
     plt = mpl()
@@ -185,11 +215,21 @@ def _plot_14(t, p_cmd, p_ach, p_pose, p_cons, visu: Path) -> None:
     ax.plot(tt, p_cmd, color=CMD, lw=0.9)
     ax.plot(tt, p_ach, color=ACH, lw=1.15)
     ax.plot(tt, p_pose, color=MINUS, lw=0.9)
-    ax.plot(tt, p_cons, color="#009E73", lw=0.8)
+    if np.isfinite(p_bound).any():
+        ax.plot(tt, p_bound, color="#009E73", lw=0.8)
     ax.set_xlabel("time (s)")
     ax.set_ylabel("power (W)")
     ax.grid(True, alpha=0.28)
     save(fig, visu, "port_power.png")
+    plt.close(fig)
+    fig, ax = plt.subplots(figsize=(3.50, 2.40), constrained_layout=True)
+    ax.plot(tt[: d_true.size], d_true, color=ACH, lw=1.15)
+    if np.isfinite(d_bound).any():
+        ax.plot(tt[: d_bound.size], d_bound, color=MINUS, lw=1.0)
+    ax.set_xlabel("time (s)")
+    ax.set_ylabel("prefix debt (J)")
+    ax.grid(True, alpha=0.28)
+    save(fig, visu, "prefix_debt.png")
     plt.close(fig)
 
 
@@ -200,11 +240,14 @@ def main() -> int:
     p.add_argument("--amp-mm-s", type=float, default=8.0)
     p.add_argument("--scan-mm-s", type=float, default=10.0)
     p.add_argument("--tilt-deg-s", type=float, default=6.0)
+    p.add_argument("--lever-mm", type=float, default=30.0)
+    p.add_argument("--id-root", default="", help="DATA root that holds 11_exec_2dof/exec.json")
     args = p.parse_args()
     when = stamp()
     print(
         "[PLAN] MOVEJ mid, air z, contact z, tilt, scan, press-then-retract  "
-        f"force loop OFF  T0={args.t0_ms:.0f} ms for delayed-command power",
+        f"force loop OFF  T0={args.t0_ms:.0f} ms  bound from 11 if present  "
+        "passivity_claim_allowed stays false without prefix-∀k coverage",
         flush=True,
     )
     if dry_exit(args):
@@ -216,6 +259,8 @@ def main() -> int:
                 when=when,
                 window_a_csv=args.window_a_csv,
                 t0_s=args.t0_ms / 1000.0,
+                lever_m=args.lever_mm / 1000.0,
+                id_root=args.id_root,
             )
         except AlignmentError as exc:
             print(f"[ERR] {exc}", flush=True)
@@ -247,8 +292,9 @@ def main() -> int:
             return 0 if srv.aborted else 130
         if not srv.seek_contact(0.008, contact_n=args.contact_n):
             return 2
-        if not srv.chirp_axis(2, 0.5 * vz, 0.3, 2.0, 6.0, "contact_z"):
-            return 0 if srv.aborted else 130
+        if not srv.chirp_disp_axis(2, 0.0004, 0.3, 3.0, 6.0, "contact_z", min_n=0.25):
+            if not (srv.aborted or srv.unloaded):
+                return 130
         if not srv.hold(axis_twist(args.theta_axis, wth), 0.8, "contact_tilt"):
             return 0 if srv.aborted else 130
         if not srv.hold(axis_twist(args.scan_axis, vs), 1.2, "contact_scan"):
@@ -267,7 +313,14 @@ def main() -> int:
     try:
         stash_window_a(args.window_a_csv, data)
         if log.is_file() and srv.n_rows > 64:
-            analyze(log, when=when, window_a_csv=args.window_a_csv, t0_s=args.t0_ms / 1000.0)
+            analyze(
+                log,
+                when=when,
+                window_a_csv=args.window_a_csv,
+                t0_s=args.t0_ms / 1000.0,
+                lever_m=args.lever_mm / 1000.0,
+                id_root=args.id_root,
+            )
     except AlignmentError as exc:
         print(f"[ERR] {exc}", flush=True)
         return 2

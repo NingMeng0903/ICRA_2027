@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Same inner Gv, but already in light contact.  Force loop still OFF.
+"""Same inner Gv, already in light contact.  Force loop OFF.
 
-What: seek until F>contact_n, then one small velocity chirp.  Abort if F high.
-Why: check that air T0/Tp still hold at ~1 N.  This is still vel_ff → v_ach,
-     not a force controller.  Hard first-touch (4–10 N) is out of scope.
+What: air then contact, both with a *displacement-limited* chirp
+      (x = Ax sin φ, Ax ≈ 0.4 mm, 0.3–8 Hz).  Preload ≈ 1.2 N.
+Why: a 5 mm/s / 0.2 Hz velocity chirp walks ~4 mm and unloads or
+     buries the pad.  This file asks whether 03's Tn still holds,
+     and returns the residual set Ev = v_ach − Ĝ_air u.
 
-If the chirp unloads the pad, the file is still Gv of the servo, just with
-a changing load.  Compare T0 to 03_chirp_gv.py, not to a force Bode.
+Not a force Bode.  Hard first-touch is out of scope.
 """
 
 from __future__ import annotations
@@ -14,100 +15,281 @@ from __future__ import annotations
 import argparse
 import math
 import sys
-import time
 from pathlib import Path
+
+import numpy as np
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from goto_mid import add_movej_args, go_mid_from_args
-from paths import add_playground, dry_exit, kind_dirs, stamp
+from contact_log import ContactLogger
+from frf_util import fopdt_from_frf, median_dt, welch_frf
+from goto_mid import go_mid_from_args
+from id_common import add_contact_args, load_aligned, load_kind_json, stash_window_a
+from id_math import dump_jsonable, fopdt_predict, residual_tube
+from io_csv import col, write_json
+from paper_fig import ACH, CMD, MINUS, mpl, panel_tag, save
+from paths import add_playground, dry_exit, kind_dirs, stamp, write_readme
+from window_a import (
+    AlignmentError,
+    fmt_finite,
+    phase_mask,
+    pose6,
+    tool_z_displacement,
+    twist_ach6,
+    twist_cmd6,
+)
+
+KIND = "07_contact_gv"
+
+
+def _pair(cmd, ach, t, dt_col, mask):
+    m = mask & np.isfinite(t) & np.isfinite(cmd) & np.isfinite(ach)
+    if int(np.count_nonzero(m)) < 64:
+        return None
+    order = np.argsort(t[m], kind="stable")
+    return t[m][order], cmd[m][order], ach[m][order], dt_col[m][order]
+
+
+def _channel(name: str, t, u, y, dt_col) -> dict:
+    dt = median_dt(t, dt_col)
+    freq, mag, phase, coh = welch_frf(u, y, dt)
+    t0, tp, gain = fopdt_from_frf(freq, mag, phase, coh, f_hi=8.0)
+    yhat = fopdt_predict(u, dt, t0, tp, gain)
+    err = y - yhat
+    tube = residual_tube(err)
+    return {
+        "name": name,
+        "T0_s": t0,
+        "Tp_s": tp,
+        "K": gain,
+        "n": int(t.size),
+        "dt_s": dt,
+        "rmse": float(np.sqrt(np.mean(np.square(err[np.isfinite(err)]))))
+        if np.isfinite(err).any()
+        else float("nan"),
+        "tube": tube,
+        "freq": freq,
+        "mag": mag,
+        "phase": phase,
+        "coh": coh,
+        "u": u,
+        "y": y,
+        "yhat": yhat,
+        "t": t,
+    }
+
+
+def analyze(csv_path: Path, *, when: str, window_a_csv: str = "", ax_mm: float = 0.4) -> dict:
+    rows, align = load_aligned(Path(csv_path), window_a_csv or None)
+    t = col(rows, "t_wall_s", "t_mono_s")
+    dt_col = col(rows, "dt_actual_s")
+    uz = twist_cmd6(rows)[:, 2]
+    vz = twist_ach6(rows)[:, 2]
+    dx = tool_z_displacement(pose6(rows))
+    channels = []
+    for phase, label in (
+        ("air_chirp", "air"),
+        ("contact_chirp", "contact"),
+        ("contact_ms", "contact_ms"),
+    ):
+        pair = _pair(uz, vz, t, dt_col, phase_mask(rows, phase))
+        if pair is None:
+            channels.append({"name": label, "T0_s": float("nan"), "n": 0})
+            continue
+        channels.append(_channel(label, *pair))
+    air = next((c for c in channels if c["name"] == "air"), {})
+    contact = next((c for c in channels if c["name"] == "contact"), {})
+    ev = {"n": 0, "p95": float("nan"), "max_abs": float("nan"), "bar": float("nan")}
+    if air.get("n", 0) >= 64 and contact.get("n", 0) >= 64:
+        yhat_c = fopdt_predict(
+            contact["u"],
+            float(contact.get("dt_s") or 0.005),
+            float(air.get("T0_s", float("nan"))),
+            float(air.get("Tp_s", float("nan"))),
+            float(air.get("K", float("nan"))),
+        )
+        ev = residual_tube(contact["y"] - yhat_c)
+    pose_amp = {}
+    for phase, key in (("air_chirp", "air"), ("contact_chirp", "contact")):
+        m = phase_mask(rows, phase)
+        if np.any(m) and np.isfinite(dx[m]).sum() >= 4:
+            xx = dx[m]
+            xx = xx[np.isfinite(xx)]
+            pose_amp[key] = {
+                "peak_mm": 1e3 * float(np.max(np.abs(xx - xx[0]))),
+                "p95_mm": 1e3 * float(np.percentile(np.abs(xx - np.median(xx)), 95)),
+            }
+        else:
+            pose_amp[key] = {"peak_mm": float("nan"), "p95_mm": float("nan")}
+    air_ref = load_kind_json("03_chirp", "gv.json") or {}
+    payload = {
+        "csv": str(csv_path),
+        "align": {k: v for k, v in align.items() if k != "reason" or v},
+        "ax_mm": ax_mm,
+        "air": {k: air.get(k) for k in ("T0_s", "Tp_s", "K", "n", "rmse", "tube")},
+        "contact": {k: contact.get(k) for k in ("T0_s", "Tp_s", "K", "n", "rmse", "tube")},
+        "Ev_contact_vs_air_model": ev,
+        "pose_amp_mm": pose_amp,
+        "air_03_T0_s": air_ref.get("T0_s"),
+        "collected_at": when,
+        "what": "contact vs air Gv under bounded indentation, not a force loop",
+    }
+    data, visu = kind_dirs(KIND, preserve=csv_path)
+    write_json(data / "gv.json", dump_jsonable(payload))
+    _plot_07(channels, visu)
+    t0_a = 1e3 * float(air.get("T0_s") or float("nan"))
+    t0_c = 1e3 * float(contact.get("T0_s") or float("nan"))
+    ax_c = pose_amp.get("contact", {}).get("peak_mm", float("nan"))
+    write_readme(
+        visu,
+        f"""# 07_contact_gv — 限位移轻接触 Gv
+
+采集：`{when}` · filter OFF · 力环关 · 对齐中位 {fmt_finite(align.get('gap_median_ms', float('nan')), '.1f')} ms
+
+## 结论
+
+- 空气 **T0 = {fmt_finite(t0_a, '.1f')} ms**，Tp = {fmt_finite(1e3 * float(air.get('Tp_s') or float('nan')), '.1f')} ms，K = {fmt_finite(float(air.get('K') or float('nan')), '.3f')}。
+- 接触 **T0 = {fmt_finite(t0_c, '.1f')} ms**，Tp = {fmt_finite(1e3 * float(contact.get('Tp_s') or float('nan')), '.1f')} ms，K = {fmt_finite(float(contact.get('K') or float('nan')), '.3f')}。
+- 接触残差（空气模型）\\(\\mathcal{{E}}_v\\)：p95 = {fmt_finite(1e3 * float(ev.get('p95') or float('nan')), '.2f')} mm/s，max = {fmt_finite(1e3 * float(ev.get('max_abs') or float('nan')), '.2f')} mm/s。这比单独一个 T0 更重要。
+- 接触段实际 pose 峰–峰位移 {fmt_finite(ax_c, '.2f')} mm（命令 Ax = {ax_mm:.2f} mm）。若接近 4 mm，激励仍然太大。
+- 对照 03 T0 = {fmt_finite(1e3 * float(air_ref.get('T0_s') or float('nan')), '.1f')} ms。不要对力 Bode。
+
+## 图
+
+`gv_compare.png`：空气 / 接触 |Gv|。
+""",
+    )
+    print(
+        f"[07] air T0={t0_a:.1f} ms  contact T0={t0_c:.1f} ms  "
+        f"Ev_p95={1e3 * float(ev.get('p95') or float('nan')):.2f} mm/s  data={data}",
+        flush=True,
+    )
+    return payload
+
+
+def _plot_07(channels: list[dict], visu: Path) -> None:
+    plt = mpl()
+    fig, ax = plt.subplots(figsize=(3.50, 2.40), constrained_layout=True)
+    colors = {"air": ACH, "contact": MINUS, "contact_ms": CMD}
+    for ch in channels:
+        freq = ch.get("freq")
+        if freq is None or not np.size(freq):
+            continue
+        f = freq
+        use = (f >= 0.18) & (f <= 10.5)
+        if not np.any(use):
+            continue
+        ax.semilogx(
+            f[use],
+            20.0 * np.log10(np.maximum(ch["mag"][use], 1e-6)),
+            color=colors.get(ch["name"], ACH),
+            lw=1.15,
+            label=ch["name"],
+        )
+    ax.set_xlabel("Frequency (Hz)")
+    ax.set_ylabel(r"$|G_v|$ (dB)")
+    ax.set_xlim(0.18, 10.5)
+    ax.grid(True, which="major", alpha=0.28)
+    ax.legend(loc="lower left")
+    save(fig, visu, "gv_compare.png")
+    plt.close(fig)
 
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    p.add_argument("--csv", default="", help="analyze with 03_chirp_gv.py --csv")
-    p.add_argument("--shm-prefix", default="")
-    p.add_argument("--amp-mm-s", type=float, default=5.0)
-    p.add_argument("--f0", type=float, default=0.2)
-    p.add_argument("--f1", type=float, default=10.0)
-    p.add_argument("--chirp-s", type=float, default=45.0)
-    p.add_argument("--seek-mm-s", type=float, default=8.0)
-    p.add_argument("--contact-n", type=float, default=0.40)
-    p.add_argument("--abort-n", type=float, default=3.50)
-    p.add_argument("--hz", type=float, default=200.0)
-    p.add_argument("--dry-run", action="store_true")
-    add_movej_args(p)
+    add_contact_args(p, abort_n=3.50, contact_n=1.20)
+    p.add_argument("--ax-mm", type=float, default=0.40, help="commanded indentation amplitude")
+    p.add_argument("--f0", type=float, default=0.3)
+    p.add_argument("--f1", type=float, default=8.0)
+    p.add_argument("--chirp-s", type=float, default=25.0)
+    p.add_argument("--ms-s", type=float, default=12.0)
+    p.add_argument("--skip-air", action="store_true")
+    p.add_argument("--skip-ms", action="store_true")
+    p.add_argument("--unload-n", type=float, default=0.25)
     args = p.parse_args()
-    if not args.csv:
-        print(
-            f"[PLAN] MOVEJ mid-stroke, then seek {args.seek_mm_s:.1f} mm/s until "
-            f"F>{args.contact_n:.2f} N, then {args.amp_mm_s:.1f} mm/s chirp  "
-            f"force loop OFF  abort F>{args.abort_n:.1f}  "
-            f"compare T0 to 03, not a force Bode",
-            flush=True,
-        )
+    when = stamp()
+    ax = args.ax_mm / 1000.0
+    print(
+        f"[PLAN] MOVEJ mid, air disp-chirp Ax={args.ax_mm:.2f} mm "
+        f"{args.f0:.1f}–{args.f1:.1f} Hz, seek F≈{args.contact_n:.2f} N, "
+        f"same chirp in contact  force loop OFF  abort F≥{args.abort_n:.1f} N  "
+        "compare T0/Tp/K and Ev, not a force Bode",
+        flush=True,
+    )
     if dry_exit(args):
         return 0
     if args.csv:
-        from importlib import import_module
-
-        import_module("03_chirp_gv").analyze(
-            Path(args.csv),
-            when=stamp(),
-            f1=args.f1,
-            amp_mm_s=args.amp_mm_s,
-            prefix="07_contact_gv",
-        )
+        try:
+            analyze(Path(args.csv), when=when, window_a_csv=args.window_a_csv, ax_mm=args.ax_mm)
+        except AlignmentError as exc:
+            print(f"[ERR] {exc}", flush=True)
+            return 2
         return 0
-    rc_m = go_mid_from_args(args)
-    if rc_m:
-        return rc_m
+    if not args.window_a_csv:
+        print("[ERR] --window-a-csv is required so Ev uses achieved twist / pose", flush=True)
+        return 2
+    rc = go_mid_from_args(args)
+    if rc:
+        return rc
     add_playground()
-    from servo_log import ServoLogger
-
-    when = stamp()
-    data, _visu = kind_dirs("07_contact_gv")
+    data, _visu = kind_dirs(KIND)
     log = data / "contact_gv.csv"
-    srv = ServoLogger(
-        prefix=args.shm_prefix, hz=args.hz, log_csv=log, abort_n=args.abort_n
+    srv = ContactLogger(
+        prefix=args.shm_prefix,
+        hz=args.hz,
+        log_csv=log,
+        abort_n=args.abort_n,
+        theta_axis=args.theta_axis,
+        scan_axis=args.scan_axis,
     )
-    rc = 0
     try:
         srv.start_twist()
-        t_seek = time.monotonic()
-        latched = False
-        while time.monotonic() - t_seek < 12.0:
-            if not srv.tick(args.seek_mm_s / 1000.0, "seek"):
-                rc = 130
-                break
-            if math.isfinite(srv.last_fz) and srv.last_fz > args.contact_n:
-                latched = True
-                print(f"[CONTACT] Fz={srv.last_fz:.2f} N", flush=True)
-                break
-            time.sleep(srv.dt)
-        if rc != 0:
-            return rc
-        if not latched:
-            print("[ERR] no contact", flush=True)
+        if not args.skip_air:
+            if not srv.chirp_disp_axis(2, ax, args.f0, args.f1, args.chirp_s, "air_chirp"):
+                return 0 if srv.aborted else 130
+            if not srv.hold(0.0, 0.3, "rest"):
+                return 130
+        if not srv.seek_contact(0.006, contact_n=args.contact_n):
             return 2
-        if not srv.chirp(args.amp_mm_s / 1000.0, args.f0, args.f1, args.chirp_s, "chirp"):
-            rc = 0 if srv.aborted else 130
-        srv.tick(0.0, "done")
+        if not srv.seek_force(args.contact_n, vel_m_s=0.003, band_n=0.20, phase="preload"):
+            return 2
+        if not srv.hold(0.0, 0.5, "preload"):
+            return 0 if srv.aborted else 130
+        if not srv.chirp_disp_axis(
+            2, ax, args.f0, args.f1, args.chirp_s, "contact_chirp", min_n=args.unload_n
+        ):
+            if srv.unloaded:
+                print("[07] contact lost during chirp — still analyzing", flush=True)
+            elif srv.aborted:
+                pass
+            else:
+                return 130
+        if not args.skip_ms:
+            from id_math import disp_multisine
+
+            v_ms, _ = disp_multisine(
+                srv.dt, args.ms_s, ax, (0.5, 1.1, 1.9, 3.1, 4.7), seed=7
+            )
+            seq = np.zeros((v_ms.size, 6), dtype=float)
+            seq[:, 2] = v_ms
+            if not srv.play(seq, "contact_ms"):
+                if not (srv.aborted or srv.unloaded):
+                    return 130
+        srv.retract_z(0.008, 2.5, 0.30)
+        srv.tick(0.0, "done", check_abort=False)
     except KeyboardInterrupt:
         print("[STOP]", flush=True)
+        return 130
     finally:
         srv.close()
-    if log.is_file() and srv.n_rows > 64:
-        from importlib import import_module
-
-        import_module("03_chirp_gv").analyze(
-            log,
-            when=when,
-            f1=args.f1,
-            amp_mm_s=args.amp_mm_s,
-            prefix="07_contact_gv",
-        )
-    return rc
+    try:
+        stash_window_a(args.window_a_csv, data)
+        if log.is_file() and srv.n_rows > 64:
+            analyze(log, when=when, window_a_csv=args.window_a_csv, ax_mm=args.ax_mm)
+    except AlignmentError as exc:
+        print(f"[ERR] {exc}", flush=True)
+        return 2
+    return 0
 
 
 if __name__ == "__main__":
