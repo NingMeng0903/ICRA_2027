@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import time
 
-from paths import add_playground
+from paths import active_run_id, add_playground, set_active_run_id, stamp
+from dof import add_session_args, set_session_dof
 
 SETTLE_S = 5.0
 
 
 def add_movej_args(parser) -> None:
+    add_session_args(parser)
     parser.add_argument(
         "--skip-movej",
         action="store_true",
@@ -31,13 +33,36 @@ def add_movej_args(parser) -> None:
 
 
 def go_mid_from_args(args) -> int:
+    set_active_run_id(getattr(args, "run_id", "") or active_run_id(stamp()))
     settle = 0.0 if bool(getattr(args, "skip_settle", False)) else float(getattr(args, "settle_s", SETTLE_S))
     return go_mid(
         prefix=str(getattr(args, "shm_prefix", "")),
         skip=bool(getattr(args, "skip_movej", False)),
         v=float(getattr(args, "movej_v", 0.4)),
         settle_s=settle,
+        dof=int(getattr(args, "dof", 8)),
     )
+
+
+def stop_for_dof_boundary(arm) -> int:
+    """Terminate a continuous task before requesting a structural switch."""
+    add_playground()
+    try:
+        from peirastic.api.codes import CODE_NAMES, OK
+    except ImportError:
+        # Hardware runs import the facade's codes.  Keep the offline FORCE_TEST
+        # boundary test usable when optional native dependencies are absent.
+        CODE_NAMES, OK = {}, 0
+
+    stopper = getattr(arm, "set_arm_stop", None)
+    if not callable(stopper):
+        raise RuntimeError("controller API must provide set_arm_stop() before set_dof()")
+    ret = stopper()
+    if ret not in (None, OK):
+        raise RuntimeError(
+            f"stop previous task -> {ret} ({CODE_NAMES.get(ret, ret)})"
+        )
+    return OK if ret is None else ret
 
 
 def go_mid(
@@ -46,32 +71,47 @@ def go_mid(
     skip: bool = False,
     v: float = 0.4,
     settle_s: float = SETTLE_S,
+    dof: int = 8,
 ) -> int:
     """Block until MOVEJ arrives, then wait ``settle_s``.  Return 0 on success."""
 
-    if skip:
-        print("[MOVEJ] skipped", flush=True)
-    else:
-        add_playground()
-        from peirastic.api import PeirasticArm
-        from peirastic.api.codes import CODE_NAMES, OK
-        from peirastic.DEMO.movej import _fmt_q, q_target_rad
+    add_playground()
+    from peirastic.api import PeirasticArm
+    from peirastic.api.codes import CODE_NAMES, OK
+    from peirastic.DEMO.movej import _fmt_q, q_target_rad
 
-        q = q_target_rad()
-        print(f"[MOVEJ] mid-stroke  {_fmt_q(q)}  v={v:.2f}", flush=True)
-        arm = PeirasticArm(prefix=str(prefix))
+    # Structural DOF is selected once before MOVEJ (or before a skipped-MOVEJ
+    # session) and inherited by every subsequent mode request.
+    arm = PeirasticArm(prefix=str(prefix))
+    try:
+        # SERVO_TWIST is continuous even after its twist bus is zeroed.  End
+        # that task explicitly before a 7/8-DOF boundary request; SET_DOF's
+        # dedicated ACK then proves the stationary transition completed.
         try:
-            ret = arm.movej(q, v=float(v), r=0, connect=0, block=1)
-        except KeyboardInterrupt:
-            arm.set_arm_stop()
-            print("[MOVEJ] interrupted", flush=True)
-            return 130
-        finally:
-            arm.close()
-        if ret != OK:
-            print(f"[ERR] MOVEJ -> {ret} ({CODE_NAMES.get(ret, ret)})", flush=True)
+            ret_stop = stop_for_dof_boundary(arm)
+        except RuntimeError as exc:
+            print(
+                f"[ERR] {exc}",
+                flush=True,
+            )
             return 1
-        print("[OK] MOVEJ mid-stroke", flush=True)
+        set_session_dof(arm, int(dof))
+        if skip:
+            print("[MOVEJ] skipped", flush=True)
+        else:
+            q = q_target_rad()
+            print(f"[MOVEJ] mid-stroke  {_fmt_q(q)}  v={v:.2f}", flush=True)
+            ret = arm.movej(q, v=float(v), r=0, connect=0, block=1)
+            if ret != OK:
+                print(f"[ERR] MOVEJ -> {ret} ({CODE_NAMES.get(ret, ret)})", flush=True)
+                return 1
+            print("[OK] MOVEJ mid-stroke", flush=True)
+    except KeyboardInterrupt:
+        arm.set_arm_stop()
+        print("[MOVEJ] interrupted", flush=True)
+        return 130
+    finally:
+        arm.close()
     if settle_s > 0.0:
         print(f"[SETTLE] {settle_s:.1f}s for nullspace", flush=True)
         time.sleep(float(settle_s))

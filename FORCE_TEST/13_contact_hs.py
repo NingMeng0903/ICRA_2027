@@ -28,7 +28,8 @@ from id_common import add_contact_args, load_aligned, stash_window_a
 from id_math import dump_jsonable, scan_perturb_twists, wrench_at_offset
 from io_csv import col, write_json
 from paper_fig import ACH, MINUS, mpl, save
-from paths import DATA, add_playground, dry_exit, kind_dirs, stamp, write_readme
+import paths
+from paths import add_playground, dry_exit, kind_dirs, stamp, write_readme
 from window_a import (
     AlignmentError,
     fmt_finite,
@@ -44,7 +45,8 @@ from window_a import (
 )
 
 KIND = "13_contact_hs"
-ALPHA_CSV = DATA / "hs_alphas.csv"
+def _alpha_csv() -> Path:
+    return paths.DATA / "hs_alphas.csv"
 ALPHA_FIELDS = (
     "collected_at",
     "alpha_deg",
@@ -112,15 +114,16 @@ def _fit_H(vz, wth, rho, df) -> dict:
 
 
 def append_alpha_row(row: dict) -> Path:
-    DATA.mkdir(parents=True, exist_ok=True)
-    fresh = not ALPHA_CSV.is_file()
-    with ALPHA_CSV.open("a", newline="") as handle:
+    path = _alpha_csv()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fresh = not path.is_file()
+    with path.open("a", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(ALPHA_FIELDS))
         if fresh:
             writer.writeheader()
         writer.writerow({key: row.get(key, "") for key in ALPHA_FIELDS})
-    print(f"[ALPHA] α={row.get('alpha_deg')}  {ALPHA_CSV}", flush=True)
-    return ALPHA_CSV
+    print(f"[ALPHA] α={row.get('alpha_deg')}  {path}", flush=True)
+    return path
 
 
 def analyze(
@@ -243,7 +246,7 @@ def analyze(
 - {h_note}
 - 倾角增大/减小的 df/dt 符号{('相反，可做定性调节。' if sign_ok else '没有可靠反号，不要写硬攻角约束。')}
 - 特征 (F̄, τ_C̄, df/ds) = ({fmt_finite(F_mean, '.2f')}, {fmt_finite(tau_mean, '.3f')}, {fmt_finite(hs_this, '.1f')})。
-  粗 α 映射要 −10/−5/0/+5/+10° **各一拍**，见 `{ALPHA_CSV.name}`。不要在同一 take 里换表面。
+  粗 α 映射要 −10/−5/0/+5/+10° **各一拍**，见 `{_alpha_csv().name}`。不要在同一 take 里换表面。
 - r_C = {r.tolist()} m（tool）。不要把 90° 写成物理定律。
 
 ## 图
@@ -352,7 +355,6 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
-        secondary=args.secondary,
     )
     slow = args.scan_mm_s / 1000.0
     fast = args.scan_fast_mm_s / 1000.0

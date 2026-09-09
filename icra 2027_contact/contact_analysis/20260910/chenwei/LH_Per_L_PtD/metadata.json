@@ -1,0 +1,26 @@
+{
+  "source": "/media/camp/PEI_T7/icra 2027/uncalibrated/chenwei/LH_Per_L_PtD.h5",
+  "origin_ns": 1788954180425935142,
+  "stages_on_image_clock_s": {
+    "prepare_begin": -9.601437748468564,
+    "standoff_ready": -6.899980025468563,
+    "seek_begin": -6.549464570468563,
+    "tracking_observed": -0.25434605946856237,
+    "path_done": 4.830653412531438,
+    "retract_begin": 4.8310826255314385,
+    "retract_end": 8.106417067531439
+  },
+  "force_overrides": {
+    "hybrid_motion": {
+      "torque_tilt": {
+        "mass": 0.051,
+        "damping": 0.22,
+        "coulomb_nm": 0.025,
+        "vmax_rad_s": 0.28,
+        "a_max": 3.0
+      }
+    }
+  },
+  "us_delay_s": 0.15196365053143765,
+  "force_delay_s": 0.0006777471734364515
+}

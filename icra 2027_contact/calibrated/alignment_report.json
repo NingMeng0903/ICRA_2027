@@ -1,0 +1,3184 @@
+{
+  "schema": "realus-ultrasound-aligned-v1",
+  "calibration": {
+    "report_file": "/media/camp/yameng/icra 2027/delay_cal/002/delay_report.json",
+    "report_sha256": "fcf33d180f3e1d2d857e7456bf35858588609cf8d39b0807d9ec2423360743e5",
+    "ultrasound_minus_tcp_ns": 151963651,
+    "force_minus_tcp_ns": 677747,
+    "calibration_us_offset_ns": 0
+  },
+  "files": [
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/LH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/LH_Per_C_DtP.h5",
+      "input_frames": 148,
+      "output_frames": 144,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.001559805585362,
+      "output_image_hz": 29.993054701285132,
+      "max_image_gap_ms": 36.144841,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 953,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.101313388888889,
+            "p95_ms": 2.685287499999998,
+            "max_ms": 4.707202
+          }
+        },
+        "force": {
+          "input_samples": 991,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0657568055555555,
+            "p95_ms": 2.37264835,
+            "max_ms": 2.601557
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/LH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/LH_Per_C_PtD.h5",
+      "input_frames": 150,
+      "output_frames": 145,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.99369665958101,
+      "output_image_hz": 30.00146789056991,
+      "max_image_gap_ms": 36.516465,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 912,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.341852551724138,
+            "p95_ms": 4.0912248,
+            "max_ms": 4.856267
+          }
+        },
+        "force": {
+          "input_samples": 997,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1864513241379309,
+            "p95_ms": 2.6742168,
+            "max_ms": 2.769489
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/LH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/LH_Per_L_DtP.h5",
+      "input_frames": 142,
+      "output_frames": 137,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.00034995089065,
+      "output_image_hz": 29.98328036384508,
+      "max_image_gap_ms": 36.967601,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 885,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2396854598540146,
+            "p95_ms": 1.8581927999999988,
+            "max_ms": 4.763553
+          }
+        },
+        "force": {
+          "input_samples": 948,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0650554671532846,
+            "p95_ms": 2.4286470000000002,
+            "max_ms": 2.55142
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/LH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/LH_Per_L_PtD.h5",
+      "input_frames": 141,
+      "output_frames": 137,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.994123345680126,
+      "output_image_hz": 29.984899340119675,
+      "max_image_gap_ms": 37.750486,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 912,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2283097153284672,
+            "p95_ms": 1.8817422,
+            "max_ms": 4.548172
+          }
+        },
+        "force": {
+          "input_samples": 945,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3883910583941605,
+            "p95_ms": 2.3864453999999995,
+            "max_ms": 2.741157
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/LH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/LH_Per_S_DtP.h5",
+      "input_frames": 163,
+      "output_frames": 158,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.999797273592165,
+      "output_image_hz": 29.984546058543767,
+      "max_image_gap_ms": 36.177095,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 993,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3055433670886074,
+            "p95_ms": 4.0571549000000005,
+            "max_ms": 4.907372
+          }
+        },
+        "force": {
+          "input_samples": 1086,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0570330696202532,
+            "p95_ms": 2.5701856,
+            "max_ms": 2.660471
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/LH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/LH_Per_S_PtD.h5",
+      "input_frames": 171,
+      "output_frames": 167,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.015566190923256,
+      "output_image_hz": 30.009010134789875,
+      "max_image_gap_ms": 37.806459,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1027,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.557890401197605,
+            "p95_ms": 3.242868699999997,
+            "max_ms": 4.618891
+          }
+        },
+        "force": {
+          "input_samples": 1144,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3852559041916168,
+            "p95_ms": 2.4571272999999993,
+            "max_ms": 2.685752
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/RH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/RH_Per_C_DtP.h5",
+      "input_frames": 192,
+      "output_frames": 187,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.011575536963793,
+      "output_image_hz": 29.999119337143316,
+      "max_image_gap_ms": 36.379601,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1156,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4766326470588236,
+            "p95_ms": 4.2767659,
+            "max_ms": 4.833946
+          }
+        },
+        "force": {
+          "input_samples": 1280,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1839402406417112,
+            "p95_ms": 2.5457026000000003,
+            "max_ms": 2.748228
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/RH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/RH_Per_C_PtD.h5",
+      "input_frames": 191,
+      "output_frames": 187,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.00466315735348,
+      "output_image_hz": 29.99918816390534,
+      "max_image_gap_ms": 36.102578,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1176,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.7085440160427807,
+            "p95_ms": 2.9934632999999997,
+            "max_ms": 4.848169
+          }
+        },
+        "force": {
+          "input_samples": 1278,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4632328128342247,
+            "p95_ms": 2.5833117,
+            "max_ms": 2.698897
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/RH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/RH_Per_L_DtP.h5",
+      "input_frames": 188,
+      "output_frames": 183,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.082470886414317,
+      "output_image_hz": 30.091245675996497,
+      "max_image_gap_ms": 36.524896,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1171,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3410212459016393,
+            "p95_ms": 2.6691547,
+            "max_ms": 4.832815
+          }
+        },
+        "force": {
+          "input_samples": 1246,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3521954480874319,
+            "p95_ms": 2.2922672000000004,
+            "max_ms": 2.95199
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/RH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/RH_Per_L_PtD.h5",
+      "input_frames": 188,
+      "output_frames": 184,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.005658483122556,
+      "output_image_hz": 29.999207661910813,
+      "max_image_gap_ms": 36.196786,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1148,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.6503628858695651,
+            "p95_ms": 3.3179858499999995,
+            "max_ms": 4.804124
+          }
+        },
+        "force": {
+          "input_samples": 1252,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3446415217391305,
+            "p95_ms": 2.511975,
+            "max_ms": 2.758921
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/RH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/RH_Per_S_DtP.h5",
+      "input_frames": 204,
+      "output_frames": 200,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.994163853800927,
+      "output_image_hz": 30.005695034174945,
+      "max_image_gap_ms": 36.643919,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1245,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.621954265,
+            "p95_ms": 2.9628182999999986,
+            "max_ms": 4.858692
+          }
+        },
+        "force": {
+          "input_samples": 1365,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4280150299999996,
+            "p95_ms": 2.6129116,
+            "max_ms": 2.665084
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/chenwei/RH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/chenwei/RH_Per_S_PtD.h5",
+      "input_frames": 201,
+      "output_frames": 197,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.012760219132215,
+      "output_image_hz": 30.00561053478811,
+      "max_image_gap_ms": 36.855814,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1204,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5266216446700507,
+            "p95_ms": 3.8608427999999986,
+            "max_ms": 4.351073
+          }
+        },
+        "force": {
+          "input_samples": 1345,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4568696294416243,
+            "p95_ms": 2.5973007999999997,
+            "max_ms": 2.685976
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/LH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/LH_Per_C_DtP.h5",
+      "input_frames": 167,
+      "output_frames": 162,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.98591989454783,
+      "output_image_hz": 29.992070612542687,
+      "max_image_gap_ms": 36.775414,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 991,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5014456296296297,
+            "p95_ms": 3.6210820999999997,
+            "max_ms": 4.712453
+          }
+        },
+        "force": {
+          "input_samples": 1117,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3151586296296296,
+            "p95_ms": 2.15202595,
+            "max_ms": 2.284412
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/LH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/LH_Per_C_PtD.h5",
+      "input_frames": 174,
+      "output_frames": 170,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.013193097064477,
+      "output_image_hz": 30.006782928523585,
+      "max_image_gap_ms": 36.928486,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1034,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.6555159058823525,
+            "p95_ms": 3.5748779999999964,
+            "max_ms": 4.547031
+          }
+        },
+        "force": {
+          "input_samples": 1158,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2884185823529413,
+            "p95_ms": 2.282624749999999,
+            "max_ms": 2.554794
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/LH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/LH_Per_L_DtP.h5",
+      "input_frames": 160,
+      "output_frames": 156,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.99843422889538,
+      "output_image_hz": 30.013427583440144,
+      "max_image_gap_ms": 36.191237,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 976,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5601818012820514,
+            "p95_ms": 2.90321825,
+            "max_ms": 4.949975
+          }
+        },
+        "force": {
+          "input_samples": 1071,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.480509967948718,
+            "p95_ms": 2.6316405,
+            "max_ms": 2.799888
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/LH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/LH_Per_L_PtD.h5",
+      "input_frames": 164,
+      "output_frames": 159,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.00514275445248,
+      "output_image_hz": 30.012366924407626,
+      "max_image_gap_ms": 36.109937,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 965,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.301409603773585,
+            "p95_ms": 2.9320273999999933,
+            "max_ms": 4.834387
+          }
+        },
+        "force": {
+          "input_samples": 1093,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.093138364779874,
+            "p95_ms": 2.2768296,
+            "max_ms": 2.640046
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/LH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/LH_Per_S_DtP.h5",
+      "input_frames": 190,
+      "output_frames": 186,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.999723859684664,
+      "output_image_hz": 29.99398015305921,
+      "max_image_gap_ms": 36.184787,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1132,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.774544623655914,
+            "p95_ms": 4.601434,
+            "max_ms": 4.794802
+          }
+        },
+        "force": {
+          "input_samples": 1272,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3631270268817204,
+            "p95_ms": 2.33559525,
+            "max_ms": 2.634459
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/LH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/LH_Per_S_PtD.h5",
+      "input_frames": 198,
+      "output_frames": 193,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.065748483879766,
+      "output_image_hz": 30.076975806802196,
+      "max_image_gap_ms": 36.843213,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1233,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5416465492227982,
+            "p95_ms": 2.6192938,
+            "max_ms": 4.398881
+          }
+        },
+        "force": {
+          "input_samples": 1313,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.313123414507772,
+            "p95_ms": 2.348113599999999,
+            "max_ms": 2.703439
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/RH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/RH_Per_C_DtP.h5",
+      "input_frames": 192,
+      "output_frames": 187,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.99212657527998,
+      "output_image_hz": 29.998936136115315,
+      "max_image_gap_ms": 37.328626,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1146,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4631392941176469,
+            "p95_ms": 3.6716602999999983,
+            "max_ms": 4.171764
+          }
+        },
+        "force": {
+          "input_samples": 1279,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4494517058823528,
+            "p95_ms": 2.5656361,
+            "max_ms": 2.65503
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/RH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/RH_Per_C_PtD.h5",
+      "input_frames": 194,
+      "output_frames": 189,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.986848678651064,
+      "output_image_hz": 29.992435888524806,
+      "max_image_gap_ms": 37.027629,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1225,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2241979947089947,
+            "p95_ms": 2.6296462,
+            "max_ms": 4.784875
+          }
+        },
+        "force": {
+          "input_samples": 1294,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1242092698412698,
+            "p95_ms": 2.5634921999999998,
+            "max_ms": 2.676885
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/RH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/RH_Per_L_DtP.h5",
+      "input_frames": 186,
+      "output_frames": 182,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.01089673273859,
+      "output_image_hz": 30.005567644146705,
+      "max_image_gap_ms": 37.284226,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1192,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5337135769230767,
+            "p95_ms": 2.6639606999999996,
+            "max_ms": 4.678157
+          }
+        },
+        "force": {
+          "input_samples": 1244,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4075276703296702,
+            "p95_ms": 2.487822049999999,
+            "max_ms": 2.709851
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/RH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/RH_Per_L_PtD.h5",
+      "input_frames": 190,
+      "output_frames": 186,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.998708427036323,
+      "output_image_hz": 29.991839238376222,
+      "max_image_gap_ms": 36.178628,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1171,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2130552956989247,
+            "p95_ms": 3.18420825,
+            "max_ms": 4.045793
+          }
+        },
+        "force": {
+          "input_samples": 1271,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2599235967741933,
+            "p95_ms": 2.1261390000000002,
+            "max_ms": 2.338875
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/RH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/RH_Per_S_DtP.h5",
+      "input_frames": 220,
+      "output_frames": 215,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.000456109674154,
+      "output_image_hz": 30.005335477246522,
+      "max_image_gap_ms": 37.893893,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1328,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5627257581395348,
+            "p95_ms": 3.7934173999999996,
+            "max_ms": 4.402676
+          }
+        },
+        "force": {
+          "input_samples": 1468,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.151096530232558,
+            "p95_ms": 1.8303529999999995,
+            "max_ms": 2.314168
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/dianye/RH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/dianye/RH_Per_S_PtD.h5",
+      "input_frames": 205,
+      "output_frames": 201,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.999367330989678,
+      "output_image_hz": 29.993753180029568,
+      "max_image_gap_ms": 36.144347,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1256,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3674472437810945,
+            "p95_ms": 3.452282,
+            "max_ms": 4.531691
+          }
+        },
+        "force": {
+          "input_samples": 1371,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.342721905472637,
+            "p95_ms": 2.322284,
+            "max_ms": 2.527132
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/LH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/LH_Per_C_DtP.h5",
+      "input_frames": 165,
+      "output_frames": 160,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.993307966280973,
+      "output_image_hz": 30.000271621327173,
+      "max_image_gap_ms": 36.66203,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 985,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5299250937499997,
+            "p95_ms": 2.969385899999989,
+            "max_ms": 4.19508
+          }
+        },
+        "force": {
+          "input_samples": 1095,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4558386875,
+            "p95_ms": 2.5728358499999993,
+            "max_ms": 2.684011
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/LH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/LH_Per_C_PtD.h5",
+      "input_frames": 167,
+      "output_frames": 162,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.09428977171389,
+      "output_image_hz": 30.082384814875525,
+      "max_image_gap_ms": 36.623637,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1017,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.6310751728395065,
+            "p95_ms": 3.2786778,
+            "max_ms": 4.887909
+          }
+        },
+        "force": {
+          "input_samples": 1107,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.306245086419753,
+            "p95_ms": 2.35519585,
+            "max_ms": 2.670634
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/LH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/LH_Per_L_DtP.h5",
+      "input_frames": 156,
+      "output_frames": 151,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.98019961584784,
+      "output_image_hz": 29.98705432476192,
+      "max_image_gap_ms": 38.097424,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 954,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5928850463576159,
+            "p95_ms": 2.967402,
+            "max_ms": 4.37991
+          }
+        },
+        "force": {
+          "input_samples": 1037,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.429299463576159,
+            "p95_ms": 2.524898,
+            "max_ms": 2.781867
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/LH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/LH_Per_L_PtD.h5",
+      "input_frames": 156,
+      "output_frames": 151,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.99209607456293,
+      "output_image_hz": 29.999851572734357,
+      "max_image_gap_ms": 36.408342,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 918,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.362255821192053,
+            "p95_ms": 4.2947115,
+            "max_ms": 4.755235
+          }
+        },
+        "force": {
+          "input_samples": 1040,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0655359139072846,
+            "p95_ms": 2.3778705,
+            "max_ms": 2.624007
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/LH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/LH_Per_S_DtP.h5",
+      "input_frames": 187,
+      "output_frames": 182,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.000097679350297,
+      "output_image_hz": 30.00653847446818,
+      "max_image_gap_ms": 36.868581,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1176,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2048940494505493,
+            "p95_ms": 2.3563581,
+            "max_ms": 5.061615
+          }
+        },
+        "force": {
+          "input_samples": 1244,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2609972912087912,
+            "p95_ms": 2.029421849999999,
+            "max_ms": 2.36905
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/LH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/LH_Per_S_PtD.h5",
+      "input_frames": 188,
+      "output_frames": 183,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.004515711705004,
+      "output_image_hz": 30.011379289362903,
+      "max_image_gap_ms": 36.219638,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1114,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.572054218579235,
+            "p95_ms": 2.800719800000001,
+            "max_ms": 4.617101
+          }
+        },
+        "force": {
+          "input_samples": 1249,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4948936721311472,
+            "p95_ms": 2.6303208,
+            "max_ms": 2.84764
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/RH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/RH_Per_C_DtP.h5",
+      "input_frames": 191,
+      "output_frames": 186,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.993096113364594,
+      "output_image_hz": 30.000462629836804,
+      "max_image_gap_ms": 38.349663,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1180,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4039679462365595,
+            "p95_ms": 3.7162337500000002,
+            "max_ms": 4.990554
+          }
+        },
+        "force": {
+          "input_samples": 1271,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3697122204301075,
+            "p95_ms": 2.46429175,
+            "max_ms": 2.733839
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/RH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/RH_Per_C_PtD.h5",
+      "input_frames": 194,
+      "output_frames": 189,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.009795716662424,
+      "output_image_hz": 30.01615856511167,
+      "max_image_gap_ms": 36.216411,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1217,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.218281941798942,
+            "p95_ms": 2.4112575999999994,
+            "max_ms": 4.963584
+          }
+        },
+        "force": {
+          "input_samples": 1294,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1517129576719578,
+            "p95_ms": 2.5777512,
+            "max_ms": 2.713887
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/RH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/RH_Per_L_DtP.h5",
+      "input_frames": 186,
+      "output_frames": 181,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.0020022720059,
+      "output_image_hz": 30.008142629480798,
+      "max_image_gap_ms": 37.512689,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1163,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3423479779005525,
+            "p95_ms": 3.522406,
+            "max_ms": 4.344769
+          }
+        },
+        "force": {
+          "input_samples": 1234,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1851697955801106,
+            "p95_ms": 2.364024,
+            "max_ms": 2.711222
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/RH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/RH_Per_L_PtD.h5",
+      "input_frames": 185,
+      "output_frames": 181,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.009208839477,
+      "output_image_hz": 30.00258855333434,
+      "max_image_gap_ms": 38.090997,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1183,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.333784546961326,
+            "p95_ms": 2.445761,
+            "max_ms": 4.081774
+          }
+        },
+        "force": {
+          "input_samples": 1234,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4195820165745856,
+            "p95_ms": 2.581564,
+            "max_ms": 2.816984
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/RH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/RH_Per_S_DtP.h5",
+      "input_frames": 226,
+      "output_frames": 221,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.004972227965133,
+      "output_image_hz": 30.009623043957834,
+      "max_image_gap_ms": 36.122779,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1351,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.6319939366515837,
+            "p95_ms": 3.677002,
+            "max_ms": 4.800401
+          }
+        },
+        "force": {
+          "input_samples": 1503,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3683389909502262,
+            "p95_ms": 2.591217,
+            "max_ms": 3.044583
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_1/RH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_1/RH_Per_S_PtD.h5",
+      "input_frames": 214,
+      "output_frames": 210,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.002171772701466,
+      "output_image_hz": 30.01363573323578,
+      "max_image_gap_ms": 36.441059,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1295,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.610021861904762,
+            "p95_ms": 3.06463655,
+            "max_ms": 4.796597
+          }
+        },
+        "force": {
+          "input_samples": 1432,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3482372428571427,
+            "p95_ms": 2.4072615,
+            "max_ms": 2.610928
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/LH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/LH_Per_C_DtP.h5",
+      "input_frames": 157,
+      "output_frames": 152,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.997808648540605,
+      "output_image_hz": 29.98148142374672,
+      "max_image_gap_ms": 36.601138,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 927,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.459968605263158,
+            "p95_ms": 3.469039599999999,
+            "max_ms": 4.991321
+          }
+        },
+        "force": {
+          "input_samples": 1042,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0347498289473684,
+            "p95_ms": 2.2080863999999996,
+            "max_ms": 2.536419
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/LH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/LH_Per_C_PtD.h5",
+      "input_frames": 156,
+      "output_frames": 151,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.011397542681717,
+      "output_image_hz": 29.996241231003825,
+      "max_image_gap_ms": 36.493154,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 921,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5880132185430464,
+            "p95_ms": 3.421016,
+            "max_ms": 4.256265
+          }
+        },
+        "force": {
+          "input_samples": 1034,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2164699668874173,
+            "p95_ms": 2.100573,
+            "max_ms": 2.563122
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/LH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/LH_Per_L_DtP.h5",
+      "input_frames": 143,
+      "output_frames": 139,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.005934958399184,
+      "output_image_hz": 29.997527995014757,
+      "max_image_gap_ms": 36.25316,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 843,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3376696043165468,
+            "p95_ms": 4.2609287,
+            "max_ms": 4.611763
+          }
+        },
+        "force": {
+          "input_samples": 953,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0684606043165465,
+            "p95_ms": 2.3723352999999996,
+            "max_ms": 2.680943
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/LH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/LH_Per_L_PtD.h5",
+      "input_frames": 145,
+      "output_frames": 140,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.999552569173243,
+      "output_image_hz": 30.007130765027817,
+      "max_image_gap_ms": 36.537359,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 871,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.450323635714286,
+            "p95_ms": 3.6427588999999965,
+            "max_ms": 4.684582
+          }
+        },
+        "force": {
+          "input_samples": 961,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.059316857142857,
+            "p95_ms": 2.415375949999999,
+            "max_ms": 2.57581
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/LH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/LH_Per_S_DtP.h5",
+      "input_frames": 165,
+      "output_frames": 161,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.991097744285288,
+      "output_image_hz": 30.005835825632904,
+      "max_image_gap_ms": 36.157036,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1006,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5341304161490683,
+            "p95_ms": 2.693925,
+            "max_ms": 4.629035
+          }
+        },
+        "force": {
+          "input_samples": 1098,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3621754037267078,
+            "p95_ms": 2.301306,
+            "max_ms": 2.533367
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/LH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/LH_Per_S_PtD.h5",
+      "input_frames": 164,
+      "output_frames": 159,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.98413345245994,
+      "output_image_hz": 29.991421919939153,
+      "max_image_gap_ms": 36.155982,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1008,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.653967314465409,
+            "p95_ms": 3.8353566,
+            "max_ms": 4.653677
+          }
+        },
+        "force": {
+          "input_samples": 1094,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4695515157232706,
+            "p95_ms": 2.5822781999999997,
+            "max_ms": 2.767824
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/RH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/RH_Per_C_DtP.h5",
+      "input_frames": 162,
+      "output_frames": 157,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.01268931471042,
+      "output_image_hz": 29.998279137179495,
+      "max_image_gap_ms": 36.26448,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 986,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.7997335541401276,
+            "p95_ms": 4.539945,
+            "max_ms": 4.899292
+          }
+        },
+        "force": {
+          "input_samples": 1073,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4821489617834396,
+            "p95_ms": 2.6027632,
+            "max_ms": 2.753513
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/RH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/RH_Per_C_PtD.h5",
+      "input_frames": 161,
+      "output_frames": 156,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.006517062929493,
+      "output_image_hz": 30.012549794167477,
+      "max_image_gap_ms": 37.920321,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 961,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3407364743589743,
+            "p95_ms": 3.3965022499999997,
+            "max_ms": 4.803252
+          }
+        },
+        "force": {
+          "input_samples": 1072,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.311614608974359,
+            "p95_ms": 2.44715725,
+            "max_ms": 2.768503
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/RH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/RH_Per_L_DtP.h5",
+      "input_frames": 159,
+      "output_frames": 155,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.989608427954753,
+      "output_image_hz": 30.005027163050357,
+      "max_image_gap_ms": 36.737492,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 954,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5208657096774192,
+            "p95_ms": 3.7526798999999946,
+            "max_ms": 4.867807
+          }
+        },
+        "force": {
+          "input_samples": 1062,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.391669206451613,
+            "p95_ms": 2.4649734999999993,
+            "max_ms": 2.704407
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/RH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/RH_Per_L_PtD.h5",
+      "input_frames": 157,
+      "output_frames": 153,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.99893882792215,
+      "output_image_hz": 29.990957375141498,
+      "max_image_gap_ms": 37.835553,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 963,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5724238104575163,
+            "p95_ms": 2.8620578000000014,
+            "max_ms": 4.993328
+          }
+        },
+        "force": {
+          "input_samples": 1045,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4223224509803918,
+            "p95_ms": 2.618696,
+            "max_ms": 2.717617
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/RH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/RH_Per_S_DtP.h5",
+      "input_frames": 183,
+      "output_frames": 178,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.010472942720508,
+      "output_image_hz": 29.997901921317673,
+      "max_image_gap_ms": 36.354994,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1170,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5197444831460674,
+            "p95_ms": 2.53693945,
+            "max_ms": 4.45586
+          }
+        },
+        "force": {
+          "input_samples": 1218,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4432006292134834,
+            "p95_ms": 2.4274072,
+            "max_ms": 3.197613
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/yameng_2/RH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/yameng_2/RH_Per_S_PtD.h5",
+      "input_frames": 174,
+      "output_frames": 169,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.991763847310445,
+      "output_image_hz": 29.998483678430624,
+      "max_image_gap_ms": 37.96543,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1030,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.340319023668639,
+            "p95_ms": 3.133477399999996,
+            "max_ms": 4.542675
+          }
+        },
+        "force": {
+          "input_samples": 1155,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2648269881656806,
+            "p95_ms": 2.401697199999999,
+            "max_ms": 2.660454
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/LH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/LH_Per_C_DtP.h5",
+      "input_frames": 214,
+      "output_frames": 210,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.000040077518328,
+      "output_image_hz": 29.994298458433,
+      "max_image_gap_ms": 36.236562,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1303,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.6983667571428571,
+            "p95_ms": 3.905113449999998,
+            "max_ms": 4.56525
+          }
+        },
+        "force": {
+          "input_samples": 1429,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4638071523809524,
+            "p95_ms": 2.57892325,
+            "max_ms": 2.798014
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/LH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/LH_Per_C_PtD.h5",
+      "input_frames": 215,
+      "output_frames": 211,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.070854745175968,
+      "output_image_hz": 30.083680081184518,
+      "max_image_gap_ms": 36.211087,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1302,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5595425450236968,
+            "p95_ms": 2.843158,
+            "max_ms": 4.629368
+          }
+        },
+        "force": {
+          "input_samples": 1432,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2938723981042652,
+            "p95_ms": 2.340438,
+            "max_ms": 2.624905
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/LH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/LH_Per_L_DtP.h5",
+      "input_frames": 211,
+      "output_frames": 207,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.068892394356002,
+      "output_image_hz": 30.08104645079928,
+      "max_image_gap_ms": 36.183124,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1277,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4719020096618358,
+            "p95_ms": 3.6203492999999995,
+            "max_ms": 4.998889
+          }
+        },
+        "force": {
+          "input_samples": 1400,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3706081739130436,
+            "p95_ms": 2.5839071999999996,
+            "max_ms": 2.692617
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/LH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/LH_Per_L_PtD.h5",
+      "input_frames": 209,
+      "output_frames": 204,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.004381144528516,
+      "output_image_hz": 29.993663670112365,
+      "max_image_gap_ms": 36.220774,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1284,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3663430490196078,
+            "p95_ms": 3.7904811499999984,
+            "max_ms": 5.02465
+          }
+        },
+        "force": {
+          "input_samples": 1390,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0733772647058824,
+            "p95_ms": 2.4263685500000003,
+            "max_ms": 2.657027
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/LH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/LH_Per_S_DtP.h5",
+      "input_frames": 228,
+      "output_frames": 223,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.07351791797632,
+      "output_image_hz": 30.080475527853192,
+      "max_image_gap_ms": 36.916627,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1379,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.562305533632287,
+            "p95_ms": 3.3136293,
+            "max_ms": 4.926445
+          }
+        },
+        "force": {
+          "input_samples": 1518,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3840535022421527,
+            "p95_ms": 2.5409839,
+            "max_ms": 2.654834
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/LH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/LH_Per_S_PtD.h5",
+      "input_frames": 223,
+      "output_frames": 219,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.99902024416059,
+      "output_image_hz": 29.99404352004594,
+      "max_image_gap_ms": 36.423236,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1355,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3431593835616438,
+            "p95_ms": 3.9583899999999996,
+            "max_ms": 4.710873
+          }
+        },
+        "force": {
+          "input_samples": 1477,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1943052328767123,
+            "p95_ms": 2.2420798,
+            "max_ms": 2.524884
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/RH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/RH_Per_C_DtP.h5",
+      "input_frames": 178,
+      "output_frames": 173,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.999618267569247,
+      "output_image_hz": 30.006979141841054,
+      "max_image_gap_ms": 36.498515,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1081,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.515559485549133,
+            "p95_ms": 3.79545,
+            "max_ms": 4.737064
+          }
+        },
+        "force": {
+          "input_samples": 1169,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2042565086705201,
+            "p95_ms": 2.6136778,
+            "max_ms": 3.795492
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/RH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/RH_Per_C_PtD.h5",
+      "input_frames": 181,
+      "output_frames": 176,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.998620753413622,
+      "output_image_hz": 30.006508824996633,
+      "max_image_gap_ms": 37.996524,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1165,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4537053181818183,
+            "p95_ms": 2.3548165,
+            "max_ms": 4.271641
+          }
+        },
+        "force": {
+          "input_samples": 1208,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1562307215909091,
+            "p95_ms": 1.93906825,
+            "max_ms": 2.552151
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/RH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/RH_Per_L_DtP.h5",
+      "input_frames": 174,
+      "output_frames": 169,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.99345823258217,
+      "output_image_hz": 30.000354936342134,
+      "max_image_gap_ms": 36.124433,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1078,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.622752846153846,
+            "p95_ms": 3.0091795999999995,
+            "max_ms": 4.500264
+          }
+        },
+        "force": {
+          "input_samples": 1162,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4328445857988166,
+            "p95_ms": 2.4227572,
+            "max_ms": 2.64345
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/RH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/RH_Per_L_PtD.h5",
+      "input_frames": 177,
+      "output_frames": 173,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.01250264245591,
+      "output_image_hz": 30.006554637028614,
+      "max_image_gap_ms": 36.151735,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1061,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2585153930635837,
+            "p95_ms": 3.7568824000000003,
+            "max_ms": 4.656227
+          }
+        },
+        "force": {
+          "input_samples": 1182,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1405413410404623,
+            "p95_ms": 2.3493732,
+            "max_ms": 2.974751
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/RH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/RH_Per_S_DtP.h5",
+      "input_frames": 196,
+      "output_frames": 191,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.99920956698054,
+      "output_image_hz": 30.005244668830038,
+      "max_image_gap_ms": 36.186456,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1196,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.561038837696335,
+            "p95_ms": 2.982023,
+            "max_ms": 4.869701
+          }
+        },
+        "force": {
+          "input_samples": 1308,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.431949445026178,
+            "p95_ms": 2.5648045,
+            "max_ms": 2.689051
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongkai/RH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongkai/RH_Per_S_PtD.h5",
+      "input_frames": 191,
+      "output_frames": 187,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.08187189758758,
+      "output_image_hz": 30.077668325852457,
+      "max_image_gap_ms": 36.073405,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1154,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5450351604278076,
+            "p95_ms": 4.167734299999992,
+            "max_ms": 4.839645
+          }
+        },
+        "force": {
+          "input_samples": 1272,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.369124919786096,
+            "p95_ms": 2.3004203,
+            "max_ms": 2.492831
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/LH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/LH_Per_C_DtP.h5",
+      "input_frames": 190,
+      "output_frames": 185,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.998128683401475,
+      "output_image_hz": 30.004713195792288,
+      "max_image_gap_ms": 36.34004,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1164,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2845866216216217,
+            "p95_ms": 3.1397445999999998,
+            "max_ms": 4.984993
+          }
+        },
+        "force": {
+          "input_samples": 1268,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.1227395675675675,
+            "p95_ms": 2.6017126,
+            "max_ms": 2.744266
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/LH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/LH_Per_L_DtP.h5",
+      "input_frames": 180,
+      "output_frames": 176,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 29.99242213305496,
+      "output_image_hz": 30.005862872980682,
+      "max_image_gap_ms": 36.201161,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1112,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.6558348522727273,
+            "p95_ms": 2.90209125,
+            "max_ms": 4.831127
+          }
+        },
+        "force": {
+          "input_samples": 1201,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3563621136363637,
+            "p95_ms": 2.6039835,
+            "max_ms": 2.804537
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/RH_Per_C_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/RH_Per_C_DtP.h5",
+      "input_frames": 225,
+      "output_frames": 221,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.075945340215934,
+      "output_image_hz": 30.071982609014874,
+      "max_image_gap_ms": 36.73079,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1403,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4503824117647057,
+            "p95_ms": 2.629172,
+            "max_ms": 4.885034
+          }
+        },
+        "force": {
+          "input_samples": 1496,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3468757511312217,
+            "p95_ms": 2.309253,
+            "max_ms": 2.608166
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/RH_Per_C_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/RH_Per_C_PtD.h5",
+      "input_frames": 224,
+      "output_frames": 220,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.00629893842004,
+      "output_image_hz": 30.00030425651036,
+      "max_image_gap_ms": 36.259938,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1439,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.3096158181818185,
+            "p95_ms": 2.0788808999999997,
+            "max_ms": 4.106221
+          }
+        },
+        "force": {
+          "input_samples": 1499,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0865144363636365,
+            "p95_ms": 2.1784275999999996,
+            "max_ms": 2.664059
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/RH_Per_L_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/RH_Per_L_DtP.h5",
+      "input_frames": 221,
+      "output_frames": 217,
+      "dropped_frames": 4,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3
+      ],
+      "input_image_hz": 30.00562841758959,
+      "output_image_hz": 30.000078012702865,
+      "max_image_gap_ms": 37.202605,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1420,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.2563074562211982,
+            "p95_ms": 2.2137112,
+            "max_ms": 4.290074
+          }
+        },
+        "force": {
+          "input_samples": 1474,
+          "reused_samples": 0,
+          "uncovered_frames": 4,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.0993786405529955,
+            "p95_ms": 2.429332999999998,
+            "max_ms": 2.947419
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/RH_Per_L_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/RH_Per_L_PtD.h5",
+      "input_frames": 222,
+      "output_frames": 217,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.994655525134046,
+      "output_image_hz": 30.00014163816871,
+      "max_image_gap_ms": 36.495172,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1388,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.5650861290322582,
+            "p95_ms": 2.6976424,
+            "max_ms": 4.404306
+          }
+        },
+        "force": {
+          "input_samples": 1477,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.394840470046083,
+            "p95_ms": 2.3972414,
+            "max_ms": 2.623099
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/RH_Per_S_DtP.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/RH_Per_S_DtP.h5",
+      "input_frames": 235,
+      "output_frames": 230,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 30.0009968985104,
+      "output_image_hz": 30.005618362046388,
+      "max_image_gap_ms": 36.70441,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1378,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.6036578826086958,
+            "p95_ms": 3.252707749999997,
+            "max_ms": 4.587491
+          }
+        },
+        "force": {
+          "input_samples": 1564,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.4111585913043476,
+            "p95_ms": 2.4302198499999994,
+            "max_ms": 2.61585
+          }
+        }
+      }
+    },
+    {
+      "source": "/media/camp/yameng/icra 2027/uncalibrated/zhongyao/RH_Per_S_PtD.h5",
+      "output": "/media/camp/yameng/icra 2027/calibrated/zhongyao/RH_Per_S_PtD.h5",
+      "input_frames": 234,
+      "output_frames": 229,
+      "dropped_frames": 5,
+      "dropped_image_indices": [
+        0,
+        1,
+        2,
+        3,
+        4
+      ],
+      "input_image_hz": 29.995444457964922,
+      "output_image_hz": 30.000097117419656,
+      "max_image_gap_ms": 38.02282,
+      "recording_us_offset_ns": 0,
+      "shifts_ns": {
+        "tcp": 151963651,
+        "force": 151285904
+      },
+      "max_match_error_ms": 16.666667,
+      "streams": {
+        "tcp": {
+          "input_samples": 1430,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.363322231441048,
+            "p95_ms": 3.7281619999999998,
+            "max_ms": 4.958404
+          }
+        },
+        "force": {
+          "input_samples": 1556,
+          "reused_samples": 0,
+          "uncovered_frames": 5,
+          "distant_frames": 0,
+          "residual": {
+            "mean_ms": 1.271038711790393,
+            "p95_ms": 2.2544655999999996,
+            "max_ms": 2.977774
+          }
+        }
+      }
+    }
+  ],
+  "errors": [],
+  "input_files": 68,
+  "output_files": 68,
+  "input_frames": 12588,
+  "output_frames": 12277
+}

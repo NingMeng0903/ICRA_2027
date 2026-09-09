@@ -17,6 +17,7 @@ Not a force Bode.  Hard first-touch is out of scope.
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import sys
 from pathlib import Path
@@ -38,9 +39,11 @@ from window_a import (
     fmt_finite,
     phase_mask,
     pose6,
+    shared_window_a_fields,
+    transverse_error_report,
     tool_z_displacement,
     twist_ach6,
-    twist_cmd6,
+    twist_external_cmd6,
 )
 
 KIND = "07_contact_gv"
@@ -83,11 +86,245 @@ def _channel(name: str, t, u, y, dt_col) -> dict:
     }
 
 
+def _after_phase_mask(rows: list[dict], phase: str) -> np.ndarray:
+    """Rows after a phase, used only as a measured tail check."""
+    mask = phase_mask(rows, phase)
+    out = np.zeros(mask.size, dtype=bool)
+    idx = np.flatnonzero(mask)
+    if idx.size and int(idx[-1]) + 1 < out.size:
+        out[int(idx[-1]) + 1 :] = True
+    return out
+
+
+def _run_meta(rows: list[dict]) -> dict:
+    out = {}
+    for key in (
+        "run_id",
+        "dof_requested",
+        "dof_active",
+        "dof_config_source",
+        "controller_api_version",
+        "mode_name",
+        "mode_request_seq",
+        "mode_install_seq",
+        "mode_install_status",
+    ):
+        vals = [str(row.get(key) or "").strip() for row in rows]
+        vals = [v for v in vals if v]
+        out[key] = vals[0] if vals else None
+    return out
+
+
+def _command_provenance(rows: list[dict]) -> tuple[str, str]:
+    """Return the frame/source of the external command after alignment."""
+    frames = {
+        str(row.get("command_frame") or "").strip().lower()
+        for row in rows
+        if str(row.get("command_frame") or "").strip()
+    }
+    sources = {
+        str(row.get("command_source") or "").strip()
+        for row in rows
+        if str(row.get("command_source") or "").strip()
+    }
+    if not frames:
+        frame = "tool"
+    elif len(frames) == 1:
+        frame = sorted(frames)[0]
+    else:
+        frame = "mixed"
+    source = sorted(sources)[0] if len(sources) == 1 else "contact_log:v_cmd_*"
+    return frame, source
+
+
+def _nan_numeric_tree(value) -> None:
+    if not isinstance(value, dict):
+        return
+    for key, item in value.items():
+        if key == "n":
+            continue
+        if isinstance(item, dict):
+            _nan_numeric_tree(item)
+        elif isinstance(item, (int, float, np.integer, np.floating)):
+            value[key] = float("nan")
+
+
+def _tail_report(
+    pose: np.ndarray,
+    twist: np.ndarray,
+    mask: np.ndarray,
+    *,
+    t: np.ndarray | None = None,
+    command: np.ndarray | None = None,
+    command_frame: str = "tool",
+) -> dict:
+    report = transverse_error_report(
+        pose,
+        twist,
+        mask,
+        t=t,
+        command=command,
+        command_frame=command_frame,
+    )
+    if int(report.get("n", 0)) < 4:
+        _nan_numeric_tree(report)
+    return report
+
+
+def _stats(values: np.ndarray) -> dict:
+    finite = np.asarray(values, dtype=float)
+    finite = finite[np.isfinite(finite)]
+    if finite.size == 0:
+        return {
+            "n": 0,
+            "mean": float("nan"),
+            "p95_abs": float("nan"),
+            "max_abs": float("nan"),
+        }
+    absolute = np.abs(finite)
+    return {
+        "n": int(finite.size),
+        "mean": float(np.mean(finite)),
+        "p95_abs": float(np.percentile(absolute, 95)),
+        "max_abs": float(np.max(absolute)),
+    }
+
+
+def _numeric_field(rows: list[dict], names: tuple[str, ...]) -> tuple[np.ndarray, str | None]:
+    """Read the first present scalar column; old CSVs become all-NaN."""
+    for name in names:
+        if any(row.get(name) not in (None, "") for row in rows):
+            return col(rows, name), name
+    return np.full(len(rows), np.nan, dtype=float), None
+
+
+def _json_component(rows: list[dict], name: str, index: int) -> tuple[np.ndarray, str | None]:
+    out = np.full(len(rows), np.nan, dtype=float)
+    present = False
+    for i, row in enumerate(rows):
+        raw = row.get(name)
+        if raw in (None, ""):
+            continue
+        present = True
+        try:
+            value = json.loads(str(raw))
+            if len(value) > int(index):
+                out[i] = float(value[int(index)])
+        except (TypeError, ValueError, json.JSONDecodeError, IndexError):
+            continue
+    return out, (f"{name}[{int(index)}]" if present else None)
+
+
+def _qp_attribution(rows: list[dict], mask: np.ndarray) -> dict:
+    """Compare model-side Y attribution with measured Window-A ``vy``.
+
+    The JSON QPIK columns are solver/model quantities.  A missing legacy
+    scalar column remains NaN; no physical TCP value is synthesized from a
+    model field.  ``slack_norm`` is retained separately because it mixes
+    task units and is not a Y-velocity bound.
+    """
+    actual, actual_source = _numeric_field(rows, ("twist_achieved_vy",))
+    requested, requested_source = _numeric_field(
+        rows, ("v_cmd_vy", "twist_requested_vy", "twist_vy")
+    )
+    task, task_source = _numeric_field(rows, ("task_residual_y", "qpik_task_residual_y"))
+    rail, rail_source = _numeric_field(rows, ("rail_exec_contrib_y", "qpik_rail_contrib_y"))
+    arm, arm_source = _numeric_field(rows, ("arm_contrib_y", "qpik_arm_contrib_y"))
+    # Keep the requested scalar names NaN when an old CSV lacks them.  The
+    # newer JSON fields are reported separately and may still support an
+    # explicitly labelled model-vs-measurement comparison.
+    model_task, model_task_source = _json_component(rows, "qpik_protected_residual_json", 1)
+    model_rail, model_rail_source = _json_component(rows, "qpik_rail_xy_contribution_json", 1)
+    model_arm, model_arm_source = _json_component(rows, "qpik_arm_xy_contribution_json", 1)
+    last_slack, last_slack_source = _numeric_field(rows, ("last_slack",))
+    slack_norm, slack_source = _numeric_field(rows, ("slack_norm",))
+
+    use = np.asarray(mask, dtype=bool)
+    def select(value: np.ndarray) -> np.ndarray:
+        return value[use] if value.size == use.size else np.full(0, np.nan)
+
+    if task_source is not None:
+        model_task = task.copy()
+        model_task_source = task_source
+    if rail_source is not None:
+        model_rail = rail.copy()
+        model_rail_source = rail_source
+    if arm_source is not None:
+        model_arm = arm.copy()
+        model_arm_source = arm_source
+    model_total = model_rail + model_arm
+    predicted = np.full(len(rows), np.nan, dtype=float)
+    model_ok = np.isfinite(model_total)
+    predicted[model_ok] = model_total[model_ok]
+    residual_ok = ~model_ok & np.isfinite(requested) & np.isfinite(model_task)
+    predicted[residual_ok] = requested[residual_ok] - model_task[residual_ok]
+    difference = actual - predicted
+    return {
+        "actual_vy_m_s": _stats(select(actual)),
+        "requested_vy_m_s": _stats(select(requested)),
+        "task_residual_y_m_s": _stats(select(task)),
+        "rail_exec_contrib_y_m_s": _stats(select(rail)),
+        "arm_contrib_y_m_s": _stats(select(arm)),
+        "model_protected_residual_y_m_s": _stats(select(model_task)),
+        "model_rail_exec_contrib_y_m_s": _stats(select(model_rail)),
+        "model_arm_contrib_y_m_s": _stats(select(model_arm)),
+        "model_total_y_m_s": _stats(select(predicted)),
+        "actual_minus_model_y_m_s": _stats(select(difference)),
+        "last_slack": _stats(select(last_slack)),
+        "slack_norm": _stats(select(slack_norm)),
+        "sources": {
+            "actual_vy": actual_source,
+            "requested_vy": requested_source,
+            "task_residual_y": task_source,
+            "rail_exec_contrib_y": rail_source,
+            "arm_contrib_y": arm_source,
+            "last_slack": last_slack_source,
+            "slack_norm": slack_source,
+            "model_protected_residual_y": model_task_source,
+            "model_rail_exec_contrib_y": model_rail_source,
+            "model_arm_contrib_y": model_arm_source,
+        },
+        "model_fields_are_physical_measurements": False,
+    }
+
+
+def _shared_window_a_report(rows: list[dict]) -> dict:
+    """Summarize append-only controller fields without changing old CSVs."""
+    fields = shared_window_a_fields(rows)
+    text_fields = {"task_pause_reason", "execution_model_hash"}
+    report = {
+        "present": {
+            name: any(value not in (None, "") for value in values)
+            for name, values in fields.items()
+        },
+        "numeric": {},
+        "task_pause_reason_values": sorted(
+            {str(value) for value in fields["task_pause_reason"] if value not in (None, "")}
+        ),
+        "execution_model_hash_values": sorted(
+            {str(value) for value in fields["execution_model_hash"] if value not in (None, "")}
+        ),
+    }
+    for name, values in fields.items():
+        if name in text_fields:
+            continue
+        report["numeric"][name] = _stats(col(rows, name))
+    actual_vy = col(rows, "twist_achieved_vy")
+    predicted_vy = col(rows, "execution_predicted_vy")
+    report["execution_predicted_vy_minus_actual_m_s"] = _stats(predicted_vy - actual_vy)
+    return report
+
+
 def analyze(csv_path: Path, *, when: str, window_a_csv: str = "", ax_mm: float = 0.4) -> dict:
     rows, align = load_aligned(Path(csv_path), window_a_csv or None)
     t = col(rows, "t_wall_s", "t_mono_s")
     dt_col = col(rows, "dt_actual_s")
-    uz = twist_cmd6(rows)[:, 2]
+    # ContactLogger v_cmd_* is a TOOL-frame command.  Window-A v_cmd_* and
+    # twist_requested_* remain BASE-frame controller telemetry; merge_logs
+    # keeps the external command under command_v_cmd_* to avoid frame reuse.
+    command = twist_external_cmd6(rows)
+    command_frame, command_source = _command_provenance(rows)
+    uz = command[:, 2]
     vz = twist_ach6(rows)[:, 2]
     dx = tool_z_displacement(pose6(rows))
     channels = []
@@ -125,6 +362,34 @@ def analyze(csv_path: Path, *, when: str, window_a_csv: str = "", ax_mm: float =
             }
         else:
             pose_amp[key] = {"peak_mm": float("nan"), "p95_mm": float("nan")}
+    transverse = {
+        "air": transverse_error_report(
+            pose6(rows),
+            twist_ach6(rows),
+            phase_mask(rows, "air_chirp"),
+            t=t,
+            command=command,
+            command_frame=command_frame,
+        ),
+        "contact": transverse_error_report(
+            pose6(rows),
+            twist_ach6(rows),
+            phase_mask(rows, "contact_chirp"),
+            t=t,
+            command=command,
+            command_frame=command_frame,
+        ),
+        "contact_tail": _tail_report(
+            pose6(rows),
+            twist_ach6(rows),
+            _after_phase_mask(rows, "contact_chirp"),
+            t=t,
+            command=command,
+            command_frame=command_frame,
+        ),
+    }
+    qp_attribution = _qp_attribution(rows, phase_mask(rows, "contact_chirp"))
+    shared_fields_report = _shared_window_a_report(rows)
     air_ref = load_kind_json("03_chirp", "gv.json") or {}
     payload = {
         "csv": str(csv_path),
@@ -134,6 +399,17 @@ def analyze(csv_path: Path, *, when: str, window_a_csv: str = "", ax_mm: float =
         "contact": {k: contact.get(k) for k in ("T0_s", "Tp_s", "K", "n", "rmse", "tube")},
         "Ev_contact_vs_air_model": ev,
         "pose_amp_mm": pose_amp,
+        "command_frame": command_frame,
+        "command_source": command_source,
+        "window_a_command_frame": "base",
+        "window_a_command_source": "window_a:v_cmd_*/twist_requested_*",
+        "transverse_error": transverse,
+        # Preserve the historical key for consumers; nested
+        # ``initial_tool_z_projection`` now labels that diagnostic explicitly.
+        "transverse_error_after_tool_z": transverse,
+        "qp_attribution_contact": qp_attribution,
+        "window_a_shared_fields": shared_fields_report,
+        "run_metadata": _run_meta(rows),
         "air_03_T0_s": air_ref.get("T0_s"),
         "collected_at": when,
         "what": "contact vs air Gv under bounded indentation, not a force loop",
@@ -156,6 +432,13 @@ Take `{when}` · filter OFF · force loop OFF · Window A median gap {fmt_finite
 - Contact **T0 = {fmt_finite(t0_c, '.1f')} ms**, Tp = {fmt_finite(1e3 * float(contact.get('Tp_s') or float('nan')), '.1f')} ms, K = {fmt_finite(float(contact.get('K') or float('nan')), '.3f')}.
 - Residual vs the air model \\(\\mathcal{{E}}_v\\): p95 = {fmt_finite(1e3 * float(ev.get('p95') or float('nan')), '.2f')} mm/s, max = {fmt_finite(1e3 * float(ev.get('max_abs') or float('nan')), '.2f')} mm/s. This set matters more than a single T0.
 - Contact pose offset from the start of that chirp: {fmt_finite(ax_c, '.2f')} mm (commanded Ax = {ax_mm:.2f} mm; this is not peak-to-peak). If it is near 4 mm the excitation is still too large.
+- Command-relative contact transverse world-Y velocity p95 = {fmt_finite(1e3 * float(transverse['contact']['command_relative']['world_y_velocity_abs_m_s']['p95']), '.2f')} mm/s and displacement p95 = {fmt_finite(1e3 * float(transverse['contact']['command_relative']['world_y_displacement_abs_m']['p95']), '.2f')} mm. The command is transformed by the measured pose at every row and integrated with Window-A timestamps.
+- Requested command world-Y displacement p95 = {fmt_finite(1e3 * float(transverse['contact']['command_relative']['requested_world_y_displacement_m']['p95_abs']), '.4f')} mm; this reports the commanded trajectory separately from the measured tracking error.
+- Command provenance: `{command_frame}` frame from `{command_source}`; Window-A controller command columns are retained separately as BASE-frame telemetry. The external command is aligned to each measured Window-A pose before the frame transform.
+- Legacy diagnostic after subtracting the **initial** tool-Z projection: contact transverse world-Y velocity p95 = {fmt_finite(1e3 * float(transverse['contact']['initial_tool_z_projection']['world_y_velocity_abs_m_s']['p95']), '.2f')} mm/s and displacement p95 = {fmt_finite(1e3 * float(transverse['contact']['initial_tool_z_projection']['world_y_displacement_abs_m']['p95']), '.2f')} mm.
+- Post-contact tail rows = {transverse['contact_tail']['n']}; tail metrics are NaN when Window A has too few finite rows.
+- QPIK contact attribution keeps actual Window-A `vy` separate from model columns: actual-minus-model p95 = {fmt_finite(1e3 * float(qp_attribution['actual_minus_model_y_m_s']['p95_abs']), '.2f')} mm/s. Missing legacy `task_residual_y` / `rail_exec_contrib_y` / `arm_contrib_y` / `last_slack` stay NaN; `slack_norm` is a mixed solver norm, not a Y-velocity bound.
+- Append-only execution/model fields (task progress/pause, rail command ACK sequence, observer hash/predicted twist, and task/rail/arm model components) are preserved when present; execution predicted-vy minus measured-vy p95 = {fmt_finite(1e3 * float(shared_fields_report['execution_predicted_vy_minus_actual_m_s']['p95_abs']), '.2f')} mm/s. Old Window A files report NaN/empty provenance.
 - 03 air T0 = {fmt_finite(1e3 * float(air_ref.get('T0_s') or float('nan')), '.1f')} ms. Do not read this as a force Bode.
 
 ## Figure
@@ -261,7 +544,7 @@ def main() -> int:
         f"≤{args.seek_max_mm:.0f} mm until F≈{args.kiss_n:.2f} N, creep "
         f"{args.slow_mm_s:.1f} mm/s to F≈{args.contact_n:.2f} N, "
         f"one-sided contact Ax={args.contact_ax_mm:.2f} mm  "
-        f"secondary={args.secondary}  force loop OFF  abort F≥{args.abort_n:.1f} N  "
+        f"dof={args.dof}  force loop OFF  abort F≥{args.abort_n:.1f} N  "
         "compare T0/Tp/K and Ev, not a force Bode",
         flush=True,
     )
@@ -295,7 +578,6 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
-        secondary=args.secondary,
     )
     try:
         srv.start_twist()

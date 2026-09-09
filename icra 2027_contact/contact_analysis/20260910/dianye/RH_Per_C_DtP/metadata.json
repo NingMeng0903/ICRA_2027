@@ -1,0 +1,26 @@
+{
+  "source": "/media/camp/PEI_T7/icra 2027/uncalibrated/dianye/RH_Per_C_DtP.h5",
+  "origin_ns": 1788952893471145361,
+  "stages_on_image_clock_s": {
+    "prepare_begin": -13.142916005468564,
+    "standoff_ready": -6.639252448468563,
+    "seek_begin": -6.288944369468562,
+    "tracking_observed": -0.2449059924685624,
+    "path_done": 6.542999996531439,
+    "retract_begin": 6.543410928531438,
+    "retract_end": 10.091819790531437
+  },
+  "force_overrides": {
+    "hybrid_motion": {
+      "torque_tilt": {
+        "mass": 0.051,
+        "damping": 0.22,
+        "coulomb_nm": 0.025,
+        "vmax_rad_s": 0.28,
+        "a_max": 3.0
+      }
+    }
+  },
+  "us_delay_s": 0.15196365053143765,
+  "force_delay_s": 0.0006777471734364515
+}

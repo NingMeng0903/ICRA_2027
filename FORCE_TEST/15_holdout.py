@@ -34,7 +34,8 @@ from id_math import (
 )
 from io_csv import col, write_json
 from paper_fig import ACH, MINUS, mpl, save
-from paths import DATA, add_playground, dry_exit, kind_dirs, stamp, write_readme
+import paths
+from paths import add_playground, dry_exit, kind_dirs, stamp, write_readme
 from window_a import (
     AlignmentError,
     fmt_finite,
@@ -72,7 +73,7 @@ def analyze(
     horizon_s: float = 0.25,
 ) -> dict:
     rows, align = load_aligned(Path(csv_path), window_a_csv or None)
-    bundle = load_id_bundle(root=Path(id_root) if id_root else DATA)
+    bundle = load_id_bundle(root=Path(id_root) if id_root else paths.DATA)
     t = col(rows, "t_wall_s", "t_mono_s")
     dt = _dt(t)
     cmd = twist_cmd6(rows)
@@ -300,7 +301,6 @@ def main() -> int:
         abort_n=args.abort_n,
         theta_axis=args.theta_axis,
         scan_axis=args.scan_axis,
-        secondary=args.secondary,
     )
     rng = np.random.default_rng(int(args.seed))
     vz = abs(args.press_mm_s) / 1000.0 * float(rng.choice([0.8, 1.0, 1.2]))

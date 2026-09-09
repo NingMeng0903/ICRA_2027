@@ -1,0 +1,22 @@
+{
+  "outcome": "completed",
+  "output": "/media/camp/yameng/icra 2027/uncalibrated/002/LH_Per_C_PtD.h5",
+  "episode": {
+    "status": "accepted",
+    "episode_index": 1,
+    "session_index": 0,
+    "entry_time_ns": 1788936595258787249,
+    "entry_confirmed_time_ns": 1788936595363898143,
+    "exit_time_ns": 1788936601806052639,
+    "exit_confirmed_time_ns": 1788936602058243830,
+    "start_time_ns": 1788936595758787249,
+    "end_time_ns": 1788936601306052639,
+    "raw_duration_s": 6.54726539,
+    "duration_s": 5.54726539,
+    "crop_s": 0.5,
+    "threshold_n": 4.0,
+    "exit_threshold_n": 0.7999999999999998,
+    "exit_hysteresis_n": 3.2,
+    "exit_absolute": true
+  }
+}

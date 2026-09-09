@@ -1,0 +1,13 @@
+[CPU] nice=10; control overlap=none
+[CLOCK] epoch; id=a0d4007ab3e74f19944db5cd76c0f38a
+Recording: /media/camp/yameng/icra 2027/uncalibrated/001/attempts/RH_Per_L_DtP/001/raw.h5
+Samples: tcp=384 force=399 ultrasound=60 controller=399
+Samples: tcp=769 force=799 ultrasound=120 controller=799
+Samples: tcp=1153 force=1200 ultrasound=180 controller=1200
+Samples: tcp=1536 force=1600 ultrasound=240 controller=1600
+Samples: tcp=1921 force=2000 ultrasound=300 controller=2000
+Samples: tcp=2307 force=2401 ultrasound=361 controller=2400
+Samples: tcp=2693 force=2801 ultrasound=420 controller=2801
+Samples: tcp=3076 force=3201 ultrasound=480 controller=3201
+Saved: /media/camp/yameng/icra 2027/uncalibrated/001/attempts/RH_Per_L_DtP/001/raw.h5
+Stream diagnostics: {"controller_unmatched_clock_header": 9, "tcp_sequence_gaps": 12, "force_unmatched_clock_header": 2}

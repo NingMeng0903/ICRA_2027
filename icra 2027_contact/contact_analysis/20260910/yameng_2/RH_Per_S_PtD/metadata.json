@@ -1,0 +1,26 @@
+{
+  "source": "/media/camp/PEI_T7/icra 2027/uncalibrated/yameng_2/RH_Per_S_PtD.h5",
+  "origin_ns": 1788952387376420946,
+  "stages_on_image_clock_s": {
+    "prepare_begin": -17.199446688468562,
+    "standoff_ready": -11.550600007468564,
+    "seek_begin": -11.201092184468564,
+    "tracking_observed": -0.24730799746856238,
+    "path_done": 5.947426510531439,
+    "retract_begin": 5.947859125531438,
+    "retract_end": 9.487456454531438
+  },
+  "force_overrides": {
+    "hybrid_motion": {
+      "torque_tilt": {
+        "mass": 0.051,
+        "damping": 0.22,
+        "coulomb_nm": 0.025,
+        "vmax_rad_s": 0.28,
+        "a_max": 3.0
+      }
+    }
+  },
+  "us_delay_s": 0.15196365053143765,
+  "force_delay_s": 0.0006777471734364515
+}

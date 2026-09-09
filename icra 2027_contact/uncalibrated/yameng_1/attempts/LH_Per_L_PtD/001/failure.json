@@ -1,0 +1,8 @@
+{
+  "directory": "attempts/LH_Per_L_PtD/001",
+  "status": "failed",
+  "error": "Stale or missing force feedback.",
+  "stages": {
+    "prepare_begin": 1788936552275612675
+  }
+}

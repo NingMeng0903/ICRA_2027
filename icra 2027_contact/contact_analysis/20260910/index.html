@@ -1,0 +1,194 @@
+<!doctype html><meta charset="utf-8"><title>超声接触审查</title>
+<style>body{max-width:1200px;margin:32px auto;font:16px sans-serif;line-height:1.6}img{max-width:100%}td,th{padding:8px;border-bottom:1px solid #ddd}details{margin:20px 0}</style>
+<h1>超声接触审查</h1><p>红色时段为无需训练的近场暗带候选，不能直接等同于物理脱离接触。时间零点为各原始 H5 第一帧超声。TCP 与力按体模延迟移到图像时钟，使用原始高频数据。</p>
+<p>检测要求同一横向条带在近场和中场均有至少 75% 像素低于灰度 40，连续宽度至少为有效孔径 12.5%，持续至少 0.2 秒。最多合并 0.1 秒间断。图像左右尚未与工具坐标标定。</p>
+<p><a href="analysis_report.md">完整分析报告与 QP 设计</a> · <a href="ULTRASOUND_CONTACT_AUDIT.md">运行方法</a> · <a href="case_comparison.png">典型状态预览</a></p><p>热图亮色表示暗像素比例高，灰色力矩带不是实际门控日志。</p><img src="overview.png"><p><a href="events.csv">事件表</a> · <a href="scan_summary.csv">采样与力矩统计</a> · <a href="candidate_summary.csv">阈值敏感性</a></p>
+<details><summary>chenwei/LH_Per_C_DtP · 候选 12.5% · 1 段</summary><img loading="lazy" src="chenwei/LH_Per_C_DtP/timeline.png"><img loading="lazy" src="chenwei/LH_Per_C_DtP/frames_overview.jpg">
+<p>4.33–4.93 s · My 低于库仑阈值占比 81.5%</p><img loading="lazy" src="chenwei/LH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>chenwei/LH_Per_C_PtD · 候选 23.4% · 1 段</summary><img loading="lazy" src="chenwei/LH_Per_C_PtD/timeline.png"><img loading="lazy" src="chenwei/LH_Per_C_PtD/frames_overview.jpg">
+<p>3.87–5.00 s · My 低于库仑阈值占比 69.0%</p><img loading="lazy" src="chenwei/LH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>chenwei/LH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="chenwei/LH_Per_L_DtP/timeline.png"><img loading="lazy" src="chenwei/LH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>chenwei/LH_Per_L_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="chenwei/LH_Per_L_PtD/timeline.png"><img loading="lazy" src="chenwei/LH_Per_L_PtD/frames_overview.jpg">
+</details>
+<details><summary>chenwei/LH_Per_S_DtP · 候选 36.1% · 2 段</summary><img loading="lazy" src="chenwei/LH_Per_S_DtP/timeline.png"><img loading="lazy" src="chenwei/LH_Per_S_DtP/frames_overview.jpg">
+<p>0.00–0.40 s · My 低于库仑阈值占比 98.1%</p><img loading="lazy" src="chenwei/LH_Per_S_DtP/event_01.jpg">
+<p>2.66–4.33 s · My 低于库仑阈值占比 52.6%</p><img loading="lazy" src="chenwei/LH_Per_S_DtP/event_02.jpg">
+</details>
+<details><summary>chenwei/LH_Per_S_PtD · 候选 5.4% · 1 段</summary><img loading="lazy" src="chenwei/LH_Per_S_PtD/timeline.png"><img loading="lazy" src="chenwei/LH_Per_S_PtD/frames_overview.jpg">
+<p>5.06–5.36 s · My 低于库仑阈值占比 88.3%</p><img loading="lazy" src="chenwei/LH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>chenwei/RH_Per_C_DtP · 候选 26.7% · 2 段</summary><img loading="lazy" src="chenwei/RH_Per_C_DtP/timeline.png"><img loading="lazy" src="chenwei/RH_Per_C_DtP/frames_overview.jpg">
+<p>1.30–2.50 s · My 低于库仑阈值占比 40.4%</p><img loading="lazy" src="chenwei/RH_Per_C_DtP/event_01.jpg">
+<p>2.86–3.33 s · My 低于库仑阈值占比 1.1%</p><img loading="lazy" src="chenwei/RH_Per_C_DtP/event_02.jpg">
+</details>
+<details><summary>chenwei/RH_Per_C_PtD · 候选 36.4% · 1 段</summary><img loading="lazy" src="chenwei/RH_Per_C_PtD/timeline.png"><img loading="lazy" src="chenwei/RH_Per_C_PtD/frames_overview.jpg">
+<p>1.66–3.93 s · My 低于库仑阈值占比 58.1%</p><img loading="lazy" src="chenwei/RH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>chenwei/RH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="chenwei/RH_Per_L_DtP/timeline.png"><img loading="lazy" src="chenwei/RH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>chenwei/RH_Per_L_PtD · 候选 100.0% · 1 段</summary><img loading="lazy" src="chenwei/RH_Per_L_PtD/timeline.png"><img loading="lazy" src="chenwei/RH_Per_L_PtD/frames_overview.jpg">
+<p>0.10–6.26 s · My 低于库仑阈值占比 94.3%</p><img loading="lazy" src="chenwei/RH_Per_L_PtD/event_01.jpg">
+</details>
+<details><summary>chenwei/RH_Per_S_DtP · 候选 20.5% · 1 段</summary><img loading="lazy" src="chenwei/RH_Per_S_DtP/timeline.png"><img loading="lazy" src="chenwei/RH_Per_S_DtP/frames_overview.jpg">
+<p>1.27–2.64 s · My 低于库仑阈值占比 20.9%</p><img loading="lazy" src="chenwei/RH_Per_S_DtP/event_01.jpg">
+</details>
+<details><summary>chenwei/RH_Per_S_PtD · 候选 32.0% · 1 段</summary><img loading="lazy" src="chenwei/RH_Per_S_PtD/timeline.png"><img loading="lazy" src="chenwei/RH_Per_S_PtD/frames_overview.jpg">
+<p>3.10–5.20 s · My 低于库仑阈值占比 31.7%</p><img loading="lazy" src="chenwei/RH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>dianye/LH_Per_C_DtP · 候选 18.5% · 1 段</summary><img loading="lazy" src="dianye/LH_Per_C_DtP/timeline.png"><img loading="lazy" src="dianye/LH_Per_C_DtP/frames_overview.jpg">
+<p>4.57–5.57 s · My 低于库仑阈值占比 94.5%</p><img loading="lazy" src="dianye/LH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>dianye/LH_Per_C_PtD · 候选 38.5% · 1 段</summary><img loading="lazy" src="dianye/LH_Per_C_PtD/timeline.png"><img loading="lazy" src="dianye/LH_Per_C_PtD/frames_overview.jpg">
+<p>3.63–5.80 s · My 低于库仑阈值占比 85.6%</p><img loading="lazy" src="dianye/LH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>dianye/LH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="dianye/LH_Per_L_DtP/timeline.png"><img loading="lazy" src="dianye/LH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>dianye/LH_Per_L_PtD · 候选 71.7% · 1 段</summary><img loading="lazy" src="dianye/LH_Per_L_PtD/timeline.png"><img loading="lazy" src="dianye/LH_Per_L_PtD/frames_overview.jpg">
+<p>1.67–5.46 s · My 低于库仑阈值占比 91.2%</p><img loading="lazy" src="dianye/LH_Per_L_PtD/event_01.jpg">
+</details>
+<details><summary>dianye/LH_Per_S_DtP · 候选 45.2% · 1 段</summary><img loading="lazy" src="dianye/LH_Per_S_DtP/timeline.png"><img loading="lazy" src="dianye/LH_Per_S_DtP/frames_overview.jpg">
+<p>3.00–5.80 s · My 低于库仑阈值占比 73.6%</p><img loading="lazy" src="dianye/LH_Per_S_DtP/event_01.jpg">
+</details>
+<details><summary>dianye/LH_Per_S_PtD · 候选 49.2% · 2 段</summary><img loading="lazy" src="dianye/LH_Per_S_PtD/timeline.png"><img loading="lazy" src="dianye/LH_Per_S_PtD/frames_overview.jpg">
+<p>1.25–3.05 s · My 低于库仑阈值占比 51.9%</p><img loading="lazy" src="dianye/LH_Per_S_PtD/event_01.jpg">
+<p>5.22–6.58 s · My 低于库仑阈值占比 80.2%</p><img loading="lazy" src="dianye/LH_Per_S_PtD/event_02.jpg">
+</details>
+<details><summary>dianye/RH_Per_C_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="dianye/RH_Per_C_DtP/timeline.png"><img loading="lazy" src="dianye/RH_Per_C_DtP/frames_overview.jpg">
+</details>
+<details><summary>dianye/RH_Per_C_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="dianye/RH_Per_C_PtD/timeline.png"><img loading="lazy" src="dianye/RH_Per_C_PtD/frames_overview.jpg">
+</details>
+<details><summary>dianye/RH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="dianye/RH_Per_L_DtP/timeline.png"><img loading="lazy" src="dianye/RH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>dianye/RH_Per_L_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="dianye/RH_Per_L_PtD/timeline.png"><img loading="lazy" src="dianye/RH_Per_L_PtD/frames_overview.jpg">
+</details>
+<details><summary>dianye/RH_Per_S_DtP · 候选 39.5% · 2 段</summary><img loading="lazy" src="dianye/RH_Per_S_DtP/timeline.png"><img loading="lazy" src="dianye/RH_Per_S_DtP/frames_overview.jpg">
+<p>1.50–2.93 s · My 低于库仑阈值占比 74.1%</p><img loading="lazy" src="dianye/RH_Per_S_DtP/event_01.jpg">
+<p>5.93–7.33 s · My 低于库仑阈值占比 88.9%</p><img loading="lazy" src="dianye/RH_Per_S_DtP/event_02.jpg">
+</details>
+<details><summary>dianye/RH_Per_S_PtD · 候选 32.3% · 1 段</summary><img loading="lazy" src="dianye/RH_Per_S_PtD/timeline.png"><img loading="lazy" src="dianye/RH_Per_S_PtD/frames_overview.jpg">
+<p>3.46–5.63 s · My 低于库仑阈值占比 94.5%</p><img loading="lazy" src="dianye/RH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_1/LH_Per_C_DtP · 候选 23.8% · 1 段</summary><img loading="lazy" src="yameng_1/LH_Per_C_DtP/timeline.png"><img loading="lazy" src="yameng_1/LH_Per_C_DtP/frames_overview.jpg">
+<p>4.24–5.50 s · My 低于库仑阈值占比 58.1%</p><img loading="lazy" src="yameng_1/LH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_1/LH_Per_C_PtD · 候选 27.8% · 1 段</summary><img loading="lazy" src="yameng_1/LH_Per_C_PtD/timeline.png"><img loading="lazy" src="yameng_1/LH_Per_C_PtD/frames_overview.jpg">
+<p>4.05–5.55 s · My 低于库仑阈值占比 91.3%</p><img loading="lazy" src="yameng_1/LH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_1/LH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="yameng_1/LH_Per_L_DtP/timeline.png"><img loading="lazy" src="yameng_1/LH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>yameng_1/LH_Per_L_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="yameng_1/LH_Per_L_PtD/timeline.png"><img loading="lazy" src="yameng_1/LH_Per_L_PtD/frames_overview.jpg">
+</details>
+<details><summary>yameng_1/LH_Per_S_DtP · 候选 55.5% · 1 段</summary><img loading="lazy" src="yameng_1/LH_Per_S_DtP/timeline.png"><img loading="lazy" src="yameng_1/LH_Per_S_DtP/frames_overview.jpg">
+<p>2.87–6.23 s · My 低于库仑阈值占比 47.5%</p><img loading="lazy" src="yameng_1/LH_Per_S_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_1/LH_Per_S_PtD · 候选 18.6% · 1 段</summary><img loading="lazy" src="yameng_1/LH_Per_S_PtD/timeline.png"><img loading="lazy" src="yameng_1/LH_Per_S_PtD/frames_overview.jpg">
+<p>5.13–6.26 s · My 低于库仑阈值占比 93.8%</p><img loading="lazy" src="yameng_1/LH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_1/RH_Per_C_DtP · 候选 83.9% · 1 段</summary><img loading="lazy" src="yameng_1/RH_Per_C_DtP/timeline.png"><img loading="lazy" src="yameng_1/RH_Per_C_DtP/frames_overview.jpg">
+<p>0.00–5.37 s · My 低于库仑阈值占比 87.2%</p><img loading="lazy" src="yameng_1/RH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_1/RH_Per_C_PtD · 候选 37.6% · 1 段</summary><img loading="lazy" src="yameng_1/RH_Per_C_PtD/timeline.png"><img loading="lazy" src="yameng_1/RH_Per_C_PtD/frames_overview.jpg">
+<p>2.13–4.50 s · My 低于库仑阈值占比 45.6%</p><img loading="lazy" src="yameng_1/RH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_1/RH_Per_L_DtP · 候选 80.1% · 1 段</summary><img loading="lazy" src="yameng_1/RH_Per_L_DtP/timeline.png"><img loading="lazy" src="yameng_1/RH_Per_L_DtP/frames_overview.jpg">
+<p>0.00–5.00 s · My 低于库仑阈值占比 45.2%</p><img loading="lazy" src="yameng_1/RH_Per_L_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_1/RH_Per_L_PtD · 候选 23.2% · 1 段</summary><img loading="lazy" src="yameng_1/RH_Per_L_PtD/timeline.png"><img loading="lazy" src="yameng_1/RH_Per_L_PtD/frames_overview.jpg">
+<p>0.46–1.86 s · My 低于库仑阈值占比 97.1%</p><img loading="lazy" src="yameng_1/RH_Per_L_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_1/RH_Per_S_DtP · 候选 70.1% · 2 段</summary><img loading="lazy" src="yameng_1/RH_Per_S_DtP/timeline.png"><img loading="lazy" src="yameng_1/RH_Per_S_DtP/frames_overview.jpg">
+<p>0.00–3.74 s · My 低于库仑阈值占比 63.0%</p><img loading="lazy" src="yameng_1/RH_Per_S_DtP/event_01.jpg">
+<p>5.93–7.53 s · My 低于库仑阈值占比 85.9%</p><img loading="lazy" src="yameng_1/RH_Per_S_DtP/event_02.jpg">
+</details>
+<details><summary>yameng_1/RH_Per_S_PtD · 候选 19.0% · 1 段</summary><img loading="lazy" src="yameng_1/RH_Per_S_PtD/timeline.png"><img loading="lazy" src="yameng_1/RH_Per_S_PtD/frames_overview.jpg">
+<p>4.20–5.54 s · My 低于库仑阈值占比 79.4%</p><img loading="lazy" src="yameng_1/RH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_2/LH_Per_C_DtP · 候选 32.2% · 1 段</summary><img loading="lazy" src="yameng_2/LH_Per_C_DtP/timeline.png"><img loading="lazy" src="yameng_2/LH_Per_C_DtP/frames_overview.jpg">
+<p>3.60–5.23 s · My 低于库仑阈值占比 94.2%</p><img loading="lazy" src="yameng_2/LH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_2/LH_Per_C_PtD · 候选 31.1% · 1 段</summary><img loading="lazy" src="yameng_2/LH_Per_C_PtD/timeline.png"><img loading="lazy" src="yameng_2/LH_Per_C_PtD/frames_overview.jpg">
+<p>3.63–5.20 s · My 低于库仑阈值占比 87.9%</p><img loading="lazy" src="yameng_2/LH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_2/LH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="yameng_2/LH_Per_L_DtP/timeline.png"><img loading="lazy" src="yameng_2/LH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>yameng_2/LH_Per_L_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="yameng_2/LH_Per_L_PtD/timeline.png"><img loading="lazy" src="yameng_2/LH_Per_L_PtD/frames_overview.jpg">
+</details>
+<details><summary>yameng_2/LH_Per_S_DtP · 候选 53.8% · 1 段</summary><img loading="lazy" src="yameng_2/LH_Per_S_DtP/timeline.png"><img loading="lazy" src="yameng_2/LH_Per_S_DtP/frames_overview.jpg">
+<p>2.44–5.30 s · My 低于库仑阈值占比 77.3%</p><img loading="lazy" src="yameng_2/LH_Per_S_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_2/LH_Per_S_PtD · 候选 13.2% · 1 段</summary><img loading="lazy" src="yameng_2/LH_Per_S_PtD/timeline.png"><img loading="lazy" src="yameng_2/LH_Per_S_PtD/frames_overview.jpg">
+<p>4.77–5.47 s · My 低于库仑阈值占比 93.6%</p><img loading="lazy" src="yameng_2/LH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>yameng_2/RH_Per_C_DtP · 候选 50.3% · 1 段</summary><img loading="lazy" src="yameng_2/RH_Per_C_DtP/timeline.png"><img loading="lazy" src="yameng_2/RH_Per_C_DtP/frames_overview.jpg">
+<p>1.53–4.16 s · My 低于库仑阈值占比 32.6%</p><img loading="lazy" src="yameng_2/RH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_2/RH_Per_C_PtD · 候选 44.2% · 2 段</summary><img loading="lazy" src="yameng_2/RH_Per_C_PtD/timeline.png"><img loading="lazy" src="yameng_2/RH_Per_C_PtD/frames_overview.jpg">
+<p>1.50–3.57 s · My 低于库仑阈值占比 20.0%</p><img loading="lazy" src="yameng_2/RH_Per_C_PtD/event_01.jpg">
+<p>4.87–5.10 s · My 低于库仑阈值占比 100.0%</p><img loading="lazy" src="yameng_2/RH_Per_C_PtD/event_02.jpg">
+</details>
+<details><summary>yameng_2/RH_Per_L_DtP · 候选 48.7% · 1 段</summary><img loading="lazy" src="yameng_2/RH_Per_L_DtP/timeline.png"><img loading="lazy" src="yameng_2/RH_Per_L_DtP/frames_overview.jpg">
+<p>2.80–5.30 s · My 低于库仑阈值占比 44.6%</p><img loading="lazy" src="yameng_2/RH_Per_L_DtP/event_01.jpg">
+</details>
+<details><summary>yameng_2/RH_Per_L_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="yameng_2/RH_Per_L_PtD/timeline.png"><img loading="lazy" src="yameng_2/RH_Per_L_PtD/frames_overview.jpg">
+</details>
+<details><summary>yameng_2/RH_Per_S_DtP · 候选 42.1% · 2 段</summary><img loading="lazy" src="yameng_2/RH_Per_S_DtP/timeline.png"><img loading="lazy" src="yameng_2/RH_Per_S_DtP/frames_overview.jpg">
+<p>1.33–2.60 s · My 低于库仑阈值占比 28.1%</p><img loading="lazy" src="yameng_2/RH_Per_S_DtP/event_01.jpg">
+<p>4.86–6.10 s · My 低于库仑阈值占比 81.7%</p><img loading="lazy" src="yameng_2/RH_Per_S_DtP/event_02.jpg">
+</details>
+<details><summary>yameng_2/RH_Per_S_PtD · 候选 23.7% · 1 段</summary><img loading="lazy" src="yameng_2/RH_Per_S_PtD/timeline.png"><img loading="lazy" src="yameng_2/RH_Per_S_PtD/frames_overview.jpg">
+<p>3.27–4.60 s · My 低于库仑阈值占比 72.3%</p><img loading="lazy" src="yameng_2/RH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>zhongkai/LH_Per_C_DtP · 候选 23.3% · 1 段</summary><img loading="lazy" src="zhongkai/LH_Per_C_DtP/timeline.png"><img loading="lazy" src="zhongkai/LH_Per_C_DtP/frames_overview.jpg">
+<p>5.50–7.13 s · My 低于库仑阈值占比 21.8%</p><img loading="lazy" src="zhongkai/LH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>zhongkai/LH_Per_C_PtD · 候选 23.7% · 1 段</summary><img loading="lazy" src="zhongkai/LH_Per_C_PtD/timeline.png"><img loading="lazy" src="zhongkai/LH_Per_C_PtD/frames_overview.jpg">
+<p>5.48–7.15 s · My 低于库仑阈值占比 81.1%</p><img loading="lazy" src="zhongkai/LH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>zhongkai/LH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongkai/LH_Per_L_DtP/timeline.png"><img loading="lazy" src="zhongkai/LH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>zhongkai/LH_Per_L_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongkai/LH_Per_L_PtD/timeline.png"><img loading="lazy" src="zhongkai/LH_Per_L_PtD/frames_overview.jpg">
+</details>
+<details><summary>zhongkai/LH_Per_S_DtP · 候选 43.0% · 2 段</summary><img loading="lazy" src="zhongkai/LH_Per_S_DtP/timeline.png"><img loading="lazy" src="zhongkai/LH_Per_S_DtP/frames_overview.jpg">
+<p>0.00–1.10 s · My 低于库仑阈值占比 78.1%</p><img loading="lazy" src="zhongkai/LH_Per_S_DtP/event_01.jpg">
+<p>3.72–5.98 s · My 低于库仑阈值占比 43.0%</p><img loading="lazy" src="zhongkai/LH_Per_S_DtP/event_02.jpg">
+</details>
+<details><summary>zhongkai/LH_Per_S_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongkai/LH_Per_S_PtD/timeline.png"><img loading="lazy" src="zhongkai/LH_Per_S_PtD/frames_overview.jpg">
+</details>
+<details><summary>zhongkai/RH_Per_C_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongkai/RH_Per_C_DtP/timeline.png"><img loading="lazy" src="zhongkai/RH_Per_C_DtP/frames_overview.jpg">
+</details>
+<details><summary>zhongkai/RH_Per_C_PtD · 候选 65.9% · 1 段</summary><img loading="lazy" src="zhongkai/RH_Per_C_PtD/timeline.png"><img loading="lazy" src="zhongkai/RH_Per_C_PtD/frames_overview.jpg">
+<p>0.00–4.04 s · My 低于库仑阈值占比 42.0%</p><img loading="lazy" src="zhongkai/RH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>zhongkai/RH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongkai/RH_Per_L_DtP/timeline.png"><img loading="lazy" src="zhongkai/RH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>zhongkai/RH_Per_L_PtD · 候选 89.6% · 1 段</summary><img loading="lazy" src="zhongkai/RH_Per_L_PtD/timeline.png"><img loading="lazy" src="zhongkai/RH_Per_L_PtD/frames_overview.jpg">
+<p>0.00–5.30 s · My 低于库仑阈值占比 80.1%</p><img loading="lazy" src="zhongkai/RH_Per_L_PtD/event_01.jpg">
+</details>
+<details><summary>zhongkai/RH_Per_S_DtP · 候选 15.7% · 1 段</summary><img loading="lazy" src="zhongkai/RH_Per_S_DtP/timeline.png"><img loading="lazy" src="zhongkai/RH_Per_S_DtP/frames_overview.jpg">
+<p>5.54–6.53 s · My 低于库仑阈值占比 80.4%</p><img loading="lazy" src="zhongkai/RH_Per_S_DtP/event_01.jpg">
+</details>
+<details><summary>zhongkai/RH_Per_S_PtD · 候选 34.4% · 1 段</summary><img loading="lazy" src="zhongkai/RH_Per_S_PtD/timeline.png"><img loading="lazy" src="zhongkai/RH_Per_S_PtD/frames_overview.jpg">
+<p>3.17–5.28 s · My 低于库仑阈值占比 48.0%</p><img loading="lazy" src="zhongkai/RH_Per_S_PtD/event_01.jpg">
+</details>
+<details><summary>zhongyao/LH_Per_C_DtP · 候选 33.5% · 1 段</summary><img loading="lazy" src="zhongyao/LH_Per_C_DtP/timeline.png"><img loading="lazy" src="zhongyao/LH_Per_C_DtP/frames_overview.jpg">
+<p>4.27–6.33 s · My 低于库仑阈值占比 78.7%</p><img loading="lazy" src="zhongyao/LH_Per_C_DtP/event_01.jpg">
+</details>
+<details><summary>zhongyao/LH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongyao/LH_Per_L_DtP/timeline.png"><img loading="lazy" src="zhongyao/LH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>zhongyao/RH_Per_C_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongyao/RH_Per_C_DtP/timeline.png"><img loading="lazy" src="zhongyao/RH_Per_C_DtP/frames_overview.jpg">
+</details>
+<details><summary>zhongyao/RH_Per_C_PtD · 候选 15.9% · 1 段</summary><img loading="lazy" src="zhongyao/RH_Per_C_PtD/timeline.png"><img loading="lazy" src="zhongyao/RH_Per_C_PtD/frames_overview.jpg">
+<p>6.30–7.46 s · My 低于库仑阈值占比 48.5%</p><img loading="lazy" src="zhongyao/RH_Per_C_PtD/event_01.jpg">
+</details>
+<details><summary>zhongyao/RH_Per_L_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongyao/RH_Per_L_DtP/timeline.png"><img loading="lazy" src="zhongyao/RH_Per_L_DtP/frames_overview.jpg">
+</details>
+<details><summary>zhongyao/RH_Per_L_PtD · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongyao/RH_Per_L_PtD/timeline.png"><img loading="lazy" src="zhongyao/RH_Per_L_PtD/frames_overview.jpg">
+</details>
+<details><summary>zhongyao/RH_Per_S_DtP · 候选 0.0% · 0 段</summary><img loading="lazy" src="zhongyao/RH_Per_S_DtP/timeline.png"><img loading="lazy" src="zhongyao/RH_Per_S_DtP/frames_overview.jpg">
+</details>
+<details><summary>zhongyao/RH_Per_S_PtD · 候选 5.2% · 1 段</summary><img loading="lazy" src="zhongyao/RH_Per_S_PtD/timeline.png"><img loading="lazy" src="zhongyao/RH_Per_S_PtD/frames_overview.jpg">
+<p>7.40–7.80 s · My 低于库仑阈值占比 78.8%</p><img loading="lazy" src="zhongyao/RH_Per_S_PtD/event_01.jpg">
+</details>

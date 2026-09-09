@@ -14,6 +14,7 @@ from pathlib import Path
 import numpy as np
 
 from id_math import disp_chirp_velocity
+from mode_handshake import install_servo_twist, mode_provenance, ModeInstallAck
 from window_a import TWIST_LETTERS
 
 FIELDS = (
@@ -21,6 +22,11 @@ FIELDS = (
     "t_mono_s",
     "dt_actual_s",
     "phase",
+    "command_frame",
+    "mode_name",
+    "mode_request_seq",
+    "mode_install_seq",
+    "mode_install_status",
     "v_cmd_vx",
     "v_cmd_vy",
     "v_cmd_vz",
@@ -30,6 +36,11 @@ FIELDS = (
     "fz",
     "feedback_age_s",
     "motion_seq",
+    "run_id",
+    "dof_requested",
+    "dof_active",
+    "dof_config_source",
+    "controller_api_version",
 )
 
 # Image-plane tilt: e_θ = e_l × e_z.  With image in tool XZ, that is tool −Y.
@@ -61,7 +72,6 @@ class ContactLogger:
         abort_n: float | None = None,
         theta_axis: int = THETA_AXIS,
         scan_axis: int = SCAN_AXIS,
-        secondary: str = "payload_id",
     ) -> None:
         from peirastic.core.ipc import CommandClient, MotionBus, TwistBus
 
@@ -94,7 +104,13 @@ class ContactLogger:
         self.aborted = False
         self.unloaded = False
         self._below_min_from: float | None = None
-        self.secondary = str(secondary).strip() or "payload_id"
+        self.mode_install: ModeInstallAck | None = None
+        self._mode_ready = False
+        from dof import current_metadata
+        from paths import active_run_id
+
+        self.run_id = active_run_id()
+        self.dof_meta = current_metadata()
 
     def reset_proxy(self) -> None:
         """Zero the live tool-Z integral.  Call at each matched-state settle."""
@@ -102,21 +118,25 @@ class ContactLogger:
         self.x_proxy = 0.0
 
     def start_twist(self) -> None:
-        from peirastic.core.modes import Mode, ModeRequest
-
-        self.client.set_mode(
-            ModeRequest(
-                Mode.SERVO_TWIST,
-                {"filter": False, "secondary": self.secondary},
-            )
-        )
+        self._mode_ready = False
+        self.mode_install = install_servo_twist(self.client, filter_enabled=False)
+        self._mode_ready = True
         print(
-            f"[MODE] SERVO_TWIST  filter OFF  secondary={self.secondary}  "
-            f"6-D cmd  force loop OFF  log={self.log_csv}",
+            f"[MODE] SERVO_TWIST  filter OFF  dof={self.dof_meta.get('dof_active')}  "
+            f"6-D cmd  force loop OFF  request_seq={self.mode_install.request_seq}  "
+            f"install_seq={self.mode_install.install_seq}  log={self.log_csv}",
             flush=True,
         )
 
+    def _require_mode_ready(self) -> None:
+        if not self._mode_ready or self.mode_install is None:
+            raise RuntimeError(
+                "SERVO_TWIST mode is not installed; call start_twist() and wait for "
+                "the install ACK before sending or recording a tick"
+            )
+
     def zero(self) -> None:
+        self._require_mode_ready()
         self.bus.write(np.zeros(6, dtype=float), hz=self.hz, connected=True)
 
     def tick(
@@ -130,6 +150,7 @@ class ContactLogger:
     ) -> bool:
         from peirastic.core.ipc import Status
 
+        self._require_mode_ready()
         if np.isscalar(twist):
             tw = axis_twist(2 if axis is None else int(axis), float(twist))
         else:
@@ -163,9 +184,16 @@ class ContactLogger:
             "t_mono_s": _fmt(time.monotonic()),
             "dt_actual_s": _fmt(dt_act),
             "phase": phase,
+            "command_frame": "tool",
+            **mode_provenance(self.mode_install),
             "fz": _fmt(fz),
             "feedback_age_s": _fmt(float(row_m.get("feedback_age_s", float("nan")))),
             "motion_seq": str(int(row_m.get("seq", 0))),
+            "run_id": self.run_id,
+            "dof_requested": self.dof_meta.get("dof_requested"),
+            "dof_active": self.dof_meta.get("dof_active"),
+            "dof_config_source": self.dof_meta.get("dof_config_source", ""),
+            "controller_api_version": self.dof_meta.get("controller_api_version", ""),
         }
         for letter, value in zip(TWIST_LETTERS, tw):
             rec[f"v_cmd_{letter}"] = _fmt(value)

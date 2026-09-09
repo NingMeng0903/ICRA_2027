@@ -1,0 +1,8 @@
+{
+  "directory": "attempts/LH_Per_S_DtP/001",
+  "status": "failed",
+  "error": "Command rejected: 1.",
+  "stages": {
+    "prepare_begin": 1788954795369335425
+  }
+}

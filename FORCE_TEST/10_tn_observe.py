@@ -35,6 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from frf_util import fopdt_fit, load_pair, median_dt, mpl, save_fig
 from io_csv import write_json
+from dof import add_session_args, set_requested_dof
 from paths import add_playground, dry_exit, kind_dirs, stamp, write_readme
 
 
@@ -149,11 +150,12 @@ def analyze(
 
 def main() -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    p.add_argument("--csv", required=True, help="03/09 SERVO_TWIST CSV (force off)")
+    p.add_argument("--csv", default="", help="03/09 SERVO_TWIST CSV (force off)")
     p.add_argument("--t0", type=float, default=None, help="override T0 [s]")
     p.add_argument("--tp", type=float, default=None, help="override Tp [s]")
     p.add_argument("--k", type=float, default=None)
     p.add_argument("--dry-run", action="store_true")
+    add_session_args(p)
     p.add_argument(
         "--q-hz",
         type=float,
@@ -161,8 +163,12 @@ def main() -> int:
         help="display LPF on the DOB residual; not an identified parameter",
     )
     args = p.parse_args()
+    set_requested_dof(args.dof)
     if dry_exit(args):
         return 0
+    if not args.csv:
+        print("[ERR] --csv is required unless --dry-run is used", flush=True)
+        return 2
     analyze(
         Path(args.csv),
         when=stamp(),

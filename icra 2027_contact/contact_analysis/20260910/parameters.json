@@ -1,0 +1,7 @@
+{
+  "input": "/media/camp/PEI_T7/icra 2027/uncalibrated",
+  "output": "/tmp/ultrasound-contact-audit-20260910",
+  "us_delay": 0.15196365053143765,
+  "force_delay": 0.0006777471734364515,
+  "dark_threshold": 40
+}

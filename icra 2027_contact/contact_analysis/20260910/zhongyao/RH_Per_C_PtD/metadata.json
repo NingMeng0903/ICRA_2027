@@ -1,0 +1,26 @@
+{
+  "source": "/media/camp/PEI_T7/icra 2027/uncalibrated/zhongyao/RH_Per_C_PtD.h5",
+  "origin_ns": 1788954517495452414,
+  "stages_on_image_clock_s": {
+    "prepare_begin": -12.408745152468564,
+    "standoff_ready": -5.1474195404685625,
+    "seek_begin": -4.796863739468562,
+    "tracking_observed": -0.2587260834685624,
+    "path_done": 7.580507704531438,
+    "retract_begin": 7.581123249531438,
+    "retract_end": 10.874823696531438
+  },
+  "force_overrides": {
+    "hybrid_motion": {
+      "torque_tilt": {
+        "mass": 0.051,
+        "damping": 0.22,
+        "coulomb_nm": 0.025,
+        "vmax_rad_s": 0.28,
+        "a_max": 3.0
+      }
+    }
+  },
+  "us_delay_s": 0.15196365053143765,
+  "force_delay_s": 0.0006777471734364515
+}

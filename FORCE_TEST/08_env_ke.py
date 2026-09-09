@@ -18,9 +18,9 @@ A single sample inside the band is not coverage.  --f-hi must not
 exceed --target-n.
 
 After the press: controlled unload at the same speed, then retract
-off the pad and MOVEJ mid-stroke.  DATA/08_ke/ keeps only the latest
-take.  Each row is appended to DATA/ke_sites.csv and
-DATA/ke_envelope.csv (wipe does not touch those).
+off the pad and MOVEJ mid-stroke.  DATA/08_ke/ is the stable latest-run
+link; each immutable take is retained under DATA/runs/08_ke/<run_id>.
+Each row is appended to DATA/ke_sites.csv and DATA/ke_envelope.csv.
 """
 
 from __future__ import annotations
@@ -41,11 +41,16 @@ from id_common import load_aligned, stash_window_a
 from id_math import dump_jsonable, local_stiffness, stiffness_envelope, work_band_spanned
 from io_csv import col, write_json
 from paper_fig import ACH, MINUS, mpl, panel_tag, save
-from paths import DATA, add_playground, dry_exit, kind_dirs, stamp, write_readme
+import paths
+from paths import add_playground, dry_exit, kind_dirs, stamp, write_readme
 from window_a import AlignmentError, add_window_a_arg, fmt_finite, phase_mask, tool_z_displacement
 
-SITES_CSV = DATA / "ke_sites.csv"
-ENVELOPE_CSV = DATA / "ke_envelope.csv"
+def _sites_csv() -> Path:
+    return paths.DATA / "ke_sites.csv"
+
+
+def _envelope_csv() -> Path:
+    return paths.DATA / "ke_envelope.csv"
 SITE_FIELDS = (
     "collected_at",
     "site",
@@ -77,27 +82,29 @@ V_E_EXAMPLE_M_S = 0.010
 
 
 def append_site_row(row: dict) -> Path:
-    """Append one Ke/site row.  Lives outside DATA/08_ke/ so wipe keeps it."""
-    DATA.mkdir(parents=True, exist_ok=True)
-    fresh = not SITES_CSV.is_file()
-    with SITES_CSV.open("a", newline="") as handle:
+    """Append one Ke/site row outside the per-run evidence directory."""
+    path = _sites_csv()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fresh = not path.is_file()
+    with path.open("a", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(SITE_FIELDS))
         if fresh:
             writer.writeheader()
         writer.writerow({key: row.get(key, "") for key in SITE_FIELDS})
-    print(f"[SITES] {row.get('site') or '(no --site)'}  Ke={row.get('ke_n_m')}  {SITES_CSV}", flush=True)
-    return SITES_CSV
+    print(f"[SITES] {row.get('site') or '(no --site)'}  Ke={row.get('ke_n_m')}  {path}", flush=True)
+    return path
 
 
 def append_envelope_row(row: dict) -> Path:
-    DATA.mkdir(parents=True, exist_ok=True)
-    fresh = not ENVELOPE_CSV.is_file()
-    with ENVELOPE_CSV.open("a", newline="") as handle:
+    path = _envelope_csv()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fresh = not path.is_file()
+    with path.open("a", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=list(ENV_FIELDS))
         if fresh:
             writer.writeheader()
         writer.writerow({key: row.get(key, "") for key in ENV_FIELDS})
-    return ENVELOPE_CSV
+    return path
 
 
 def _press_slice(rows, fz: np.ndarray) -> np.ndarray:
@@ -262,8 +269,8 @@ def analyze(
         "example_bound_note": "2 * Ke_bar * 10 mm/s * 40 ms; uses worst-case local Ke, not the secant",
         "what": "stiffness envelope from actual pose; secant is not the paper number",
         "collected_at": when,
-        "sites_csv": str(SITES_CSV),
-        "envelope_csv": str(ENVELOPE_CSV),
+        "sites_csv": str(_sites_csv()),
+        "envelope_csv": str(_envelope_csv()),
     }
     data, visu = kind_dirs("08_ke", preserve=csv_path)
     write_json(data / "ke.json", dump_jsonable(payload))
@@ -295,7 +302,7 @@ def analyze(
 - 加载 ᾱKe = {fmt_finite(load_env.get('ke_bar'), '.1f')}，卸载 ᾱKe = {fmt_finite(unload_env.get('ke_bar'), '.1f')} N/m。
 - 位移来源是 Window A 位姿，**不是**命令积分。对齐中位间隙 {fmt_finite(align.get('gap_median_ms', float('nan')), '.1f')} ms。
 - 量纲示例 2 ᾱKe ve τℓ（ve=10 mm/s，τℓ=40 ms）≈ {fmt_finite(bound_n, '.2f')} N。{'硬垫，C1 下界有机会紧。' if hard else '若这是软垫，主实验必须另采硬垫才谈不可实现。'}
-- 矩阵行追加在 `{ENVELOPE_CSV.name}`，wipe 不删。同一部位至少再换 2–3 个速度。
+- 矩阵行追加在 `{_envelope_csv().name}`，旧数据不删。同一部位至少再换 2–3 个速度。
 
 不要开混合。不要写进 yaml，除非明确要写。
 """,
@@ -414,7 +421,7 @@ def main() -> int:
             f"retract −Z, MOVEJ mid  site={site or '(tell me after)'}  "
             f"band [{args.f_lo:.1f},{args.f_hi:.1f}] N  abort F≥{args.abort_n:.1f} N  "
             f"repeat each site at 1.5, 3, 6 mm/s  "
-            f"force loop OFF  Δx=Window A pose  log→{ENVELOPE_CSV.name}",
+            f"force loop OFF  Δx=Window A pose  log→{_envelope_csv().name}",
             flush=True,
         )
         print("[PLAN] Window A must be started with --log-csv; pass --window-a-csv", flush=True)
@@ -519,6 +526,7 @@ def main() -> int:
             skip=False,
             v=float(args.movej_v),
             settle_s=0.0,
+            dof=int(args.dof),
         )
         if rc_back and rc == 0:
             rc = rc_back

@@ -2,7 +2,7 @@
 
 Every hardware script MOVEJs to mid-stroke first (same as `peirastic.DEMO.movej`: rail 400 mm + taught arm), **waits 5 s for nullspace**, then SERVO_TWIST. Force loop stays off. `--skip-movej` / `--skip-settle` if already settled. `10_tn_observe.py` is analyze-only.
 
-Window A first: `python -m peirastic.apps.run_controller`. Air scripts 01–05/09 do not need `--log-csv`. **07, 08, 11–15 require Window A `--log-csv` and `--window-a-csv`.** MotionBus only publishes tool-Z.
+Window A first: `python -m peirastic.apps.run_controller`. Air scripts 01–05/09 do not need `--log-csv`. **07, 08, 11–15 require Window A `--log-csv` and `--window-a-csv`.** MotionBus only publishes tool-Z. Every script selects the session mechanism once with `--dof 8` (default) or `--dof 7`; subsequent MOVEJ/SERVO calls inherit it.
 
 ```bash
 cd /media/camp/EXT_DRIVE/ICRA_2027
@@ -18,7 +18,7 @@ python FORCE_TEST/01_system_delay.py --dry-run
 | `04_timing_jitter.py` | feedback_age, dt_actual | plant T0 |
 | `05_tracking_error.py` | \|vel_ff − v_ach\| (Lee) | BEFM apply (no τ) |
 | `06_axis_gv.py` | Gv on X/Y/Z (Ma macro/mini) | force law |
-| `07_contact_gv.py` | air vs contact Gv; rail **payload_id** (locked); one-sided contact 0.20 mm; Ev | force tracking; `secondary=track` 8DoF allocator in the ID plant |
+| `07_contact_gv.py` | air vs contact Gv; session-level 7/8DoF; one-sided contact 0.20 mm; Ev and transverse drift | force tracking; no per-mode rail policy |
 | `08_env_ke.py` | Ke envelope in F∈[2,5] N (aligned with `--target-n=5`); `ke_envelope.csv` | single-secant 527 N/m; claiming [2,6] N at a 5 N press |
 | `09_multisine_gv.py` | paper §II.A multisine FRF | position-loop experiment |
 | `10_tn_observe.py` | eq.(10) first term, observe only | Q/N1/N2 ID, CDYOB apply |
@@ -28,7 +28,7 @@ python FORCE_TEST/01_system_delay.py --dry-run
 | `14_port_energy.py` | \(P_{\rm lower}=W^\top\hat G_{\rm contact}u-\|F\|\bar e\); prefix ∀k | \(P_{\rm ach}-\|F\|\bar e_G\); lever “calibration” via invariance |
 | `15_holdout.py` | independent coverage of 08/11–14 bounds | fitting a new G/Ke/H/w̄ |
 
-`--csv` analyzes an existing file. Each script keeps **only the latest** run: `DATA/01_delay/`, `VISU/01_delay/`, … A new collect (or `--csv` analyze) deletes that script’s previous folder. `06` keeps latest per axis in `DATA/06_axis_x|y|z/` and `VISU/06_axis/{x,y,z}/`. `--dry-run` prints the plan only: no drive, no DATA, no VISU, even with `--csv`. Timestamp of the take is in the JSON `collected_at` field.
+`--csv` analyzes an existing file. New collections live in immutable `DATA/runs/<kind>/<run_id>/` and `VISU/runs/<kind>/<run_id>/`; `DATA/<kind>` and `VISU/<kind>` are stable latest links after the first collection. A legacy flat folder is migrated only when a new collection starts. `--run-id` selects an explicit id; otherwise the collection timestamp is used. `--dry-run` prints the plan only: no drive, no DATA, no VISU, even with `--csv`. Timestamp and DOF provenance are stored in `run.json` and the command CSV metadata columns.
 
 Contact ID writes a 6-D command log plus a copy of Window A as `DATA/<kind>/window_a.csv`. Analyze refuses to invent pose/wrench from the command file. Window A must log `tx,ty,tz` (playground patch); without torque, 13/14 degrade and say so.
 

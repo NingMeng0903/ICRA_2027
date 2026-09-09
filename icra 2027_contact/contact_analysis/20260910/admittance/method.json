@@ -1,0 +1,47 @@
+{
+  "description": "Offline torque-tilt admittance replay against actual body omega_y",
+  "input_root": "/tmp/ultrasound-contact-audit-20260910",
+  "scans_found": 68,
+  "scans_processed": 68,
+  "errors": [],
+  "parameters": {
+    "mass_kg_m2": 0.051,
+    "damping_nms_per_rad": 0.22,
+    "coulomb_nm": 0.025,
+    "vmax_rad_s": 0.28,
+    "amax_rad_s2": 3.0,
+    "initial_conditions_rad_s": {
+      "zero": 0.0,
+      "plus_vmax": 0.28,
+      "minus_vmax": -0.28
+    },
+    "discard_first_s": 1.2
+  },
+  "update": [
+    "z = M/dt*previous_omega - My",
+    "target = clip(sign(z)*max(abs(z)-C, 0)/(M/dt+D), -vmax, vmax)",
+    "omega = clip(previous_omega + clip(target-previous_omega, -amax*dt, amax*dt), -vmax, vmax)"
+  ],
+  "actual_comparison": {
+    "signal": "body_omega[:,1]",
+    "denoise": "scipy.ndimage.median_filter(size=5, mode='nearest')",
+    "discard_first_s": 1.2,
+    "my_filtering": "none; use cached compensated, causal-filtered My as recorded"
+  },
+  "excitation_gate_for_apparent_lag": {
+    "my_excess_rms_min_nm": 0.007,
+    "predicted_rms_min_rad_s": 0.005,
+    "fraction_abs_my_above_coulomb_plus_0p005_min": 0.15,
+    "meaning": "descriptive exclusion of low-excitation scans; not a contact or controller gate"
+  },
+  "lag_definition": "correlation(predicted(t), actual(t+lag)); positive lag means actual appears later",
+  "limitations": [
+    "force_time_s is a force publication timestamp and is not the true controller update dt",
+    "the recorded H5 does not include the actual torque-tilt command, contact gate, QP slack, freeze reason, or angle cap",
+    "the replay assumes the torque-tilt gate stayed open and therefore cannot prove that the live controller used this trajectory",
+    "apparent lag is a descriptive waveform alignment and is not a hardware delay estimate",
+    "actual body omega_y also contains path and other controller contributions",
+    "initial-state sensitivity is tested with 0 and +/-vmax, but the actual live initial state is not recorded",
+    "no tissue stiffness fit, trained model, or ultrasound image inference is used here"
+  ]
+}

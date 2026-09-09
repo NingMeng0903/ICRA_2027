@@ -25,43 +25,22 @@ from frf_util import fopdt_from_frf, median_dt, mpl, welch_frf
 from io_csv import col, load_rows, write_json
 from goto_mid import add_movej_args, go_mid_from_args
 from paper_fig import ACH, GUIDE, log_freq_ticks, save
-from paths import DATA, VISU, add_playground, dry_exit, stamp, write_readme, _rm
+import paths
+from paths import add_playground, dry_exit, stamp, write_readme
 
 AXIS = {"x": 0, "y": 1, "z": 2}
 NAME = {0: "x", 1: "y", 2: "z"}
 
 
 def axis_dirs(letter: str, *, preserve: Path | None = None) -> tuple[Path, Path]:
-    """DATA/06_axis_<letter>/ and VISU/06_axis/<letter>/ (x,y,z in parallel)."""
-
-    letter = str(letter)
-    data = DATA / f"06_axis_{letter}"
-    visu = VISU / "06_axis" / letter
-    keep_data = False
-    if preserve is not None:
-        try:
-            Path(preserve).resolve().relative_to(data.resolve())
-            keep_data = True
-        except (ValueError, OSError):
-            keep_data = False
-    if data.is_dir() and not keep_data:
-        _rm(data)
-    leftover = VISU / f"06_axis_{letter}"
-    if leftover.is_dir():
-        _rm(leftover)
-    if visu.is_dir():
-        for child in visu.iterdir():
-            if child.name != "README.md":
-                _rm(child)
-    data.mkdir(parents=True, exist_ok=True)
-    visu.mkdir(parents=True, exist_ok=True)
-    return data, visu
+    """Use one immutable run per axis while keeping the fixed latest name."""
+    return paths.kind_dirs(f"06_axis_{str(letter)}", preserve=preserve)
 
 
-def _write_index() -> None:
+def _write_index(*, collect: bool = False) -> None:
     rows = []
     for letter in "xyz":
-        js = DATA / f"06_axis_{letter}" / "axis.json"
+        js = paths.resolve_kind_dir(f"06_axis_{letter}") / "axis.json"
         if js.is_file():
             import json
 
@@ -74,7 +53,7 @@ def _write_index() -> None:
         else:
             rows.append(f"| {letter.upper()} | 还没采 | | | |")
     write_readme(
-        VISU / "06_axis",
+        paths.run_visu_dir("06_axis", collect=collect),
         f"""# 06_axis — 分轴 Gv
 
 图和分析在平行子目录：`x/`、`y/`、`z/`。不要扫姿态，也不要扫斜向混合。
@@ -146,7 +125,15 @@ def _plot_06(freq, mag, *, f1: float, visu: Path, name: str) -> None:
     plt.close(fig)
 
 
-def analyze(csv_path: Path, *, when: str, axis: int, window_a: Path | None, f1: float) -> dict:
+def analyze(
+    csv_path: Path,
+    *,
+    when: str,
+    axis: int,
+    window_a: Path | None,
+    f1: float,
+    collect: bool = False,
+) -> dict:
     src_path = Path(window_a) if window_a is not None else Path(csv_path)
     from_03 = "03_chirp" in str(src_path)
     if window_a is not None:
@@ -187,7 +174,7 @@ def analyze(csv_path: Path, *, when: str, axis: int, window_a: Path | None, f1: 
 - 不要写 yaml。数据：`DATA/06_axis_{NAME[axis]}/`
 """,
     )
-    _write_index()
+    _write_index(collect=collect)
     print(
         f"[AXIS {NAME[axis]}] T0={1e3 * float(t0):.1f} ms  Tp={1e3 * float(tp):.1f} ms  "
         f"K={float(gain):.3f}  data={data}",
@@ -233,6 +220,7 @@ def main() -> int:
             axis=axis,
             window_a=Path(args.window_a_csv) if args.window_a_csv else None,
             f1=args.f1,
+            collect=False,
         )
         return 0
     rc = go_mid_from_args(args)
@@ -265,7 +253,7 @@ def main() -> int:
         )
         return 2
     if log.is_file() and srv.n_rows > 64:
-        analyze(log, when=when, axis=axis, window_a=wa, f1=args.f1)
+        analyze(log, when=when, axis=axis, window_a=wa, f1=args.f1, collect=True)
     return 0
 
 

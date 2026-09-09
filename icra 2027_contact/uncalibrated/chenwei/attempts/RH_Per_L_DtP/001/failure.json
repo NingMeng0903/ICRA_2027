@@ -1,0 +1,8 @@
+{
+  "directory": "attempts/RH_Per_L_DtP/001",
+  "status": "failed",
+  "error": "Stale or missing force feedback.",
+  "stages": {
+    "prepare_begin": 1788953775496596735
+  }
+}
